@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Habits</title>
+</head>
+<body>
+    <h1>All habits: </h1>
+    {% for habit in habit_list %}
+        <p>{{ habit.name }}</p>
+    {% endfor %}
+
+    <h1>Habits records: </h1>
+    {% for habit_log in habit_records %}
+        <p>{{ habit_log.habit.name }} : {{ habit_log.date }}, {{ habit_log.if_done }}</p>
+    {% endfor %}
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Sleep</title>
+</head>
+<body>
+    <h1>Sleep</h1>
+    <p> Sleep records: </p>
+    {# jinja #}
+    {% for sleep in sleep_records %}
+        <p>{{ sleep.bedtime }} - {{ sleep.waketime }}</p>
+    {% endfor %}
+
+</body>
+</html>
+
