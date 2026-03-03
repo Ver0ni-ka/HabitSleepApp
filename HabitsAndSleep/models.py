@@ -1,12 +1,9 @@
+import uuid
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.db import models
-
-# Create your models here.
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from django.urls import reverse
-
 
 
 class User(AbstractUser):
@@ -21,6 +18,7 @@ class User(AbstractUser):
 
 
 class SleepLog(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sleep')
     date = models.DateField(default=timezone.now)
     bedtime = models.DateTimeField()
@@ -31,6 +29,7 @@ class SleepLog(models.Model):
         return reverse("sleep-detail", args=[str(self.id)])
 
 class Habit(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='habits')
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
@@ -39,6 +38,7 @@ class Habit(models.Model):
         return reverse("habit-detail", args=[str(self.id)])
 
 class HabitLog(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     habit = models.ForeignKey(Habit, on_delete=models.CASCADE, related_name='logs')
     date = models.DateField()
     if_done = models.BooleanField(default=False)

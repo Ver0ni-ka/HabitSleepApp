@@ -37,10 +37,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    #'allauth.socialaccount.providers.github',
     'HabitsAndSleep.apps.HabitsandsleepConfig',
 ]
 
 MIDDLEWARE = [
+    'allauth.account.middleware.AccountMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -49,6 +56,34 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'APP': {
+            'client_id': '965201308657-k96631dkbpiebjg4pluquqrtf4kv6jv2.apps.googleusercontent.com',
+            'secret': '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',
+            'key': ''
+        }
+    }
+}
+
+LOGIN_REDIRECT_URL = 'home'
+LOGOUT_REDIRECT_URL = 'home'
+SOCIALACCOUNT_LOGIN_ON_GET = True
+# Ask for email from Google
+SOCIALACCOUNT_QUERY_EMAIL = True
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'first_name*','password1*', 'password2*']
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+SOCIALACCOUNT_AUTO_SIGNUP = True
+
+SITE_ID = 1
 
 ROOT_URLCONF = 'HabitSleepApp.urls'
 
@@ -67,6 +102,14 @@ TEMPLATES = [
             ],
         },
     },
+]
+
+AUTHENTICATION_BACKENDS = [
+    # Needed to login by username in Django admin, regardless of `allauth`
+    'django.contrib.auth.backends.ModelBackend',
+
+    # `allauth` specific authentication methods, such as login by email
+    'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
 WSGI_APPLICATION = 'HabitSleepApp.wsgi.application'
@@ -101,6 +144,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# 2 weeks for one session
+SESSION_COOKIE_AGE = 1209600
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/

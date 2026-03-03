@@ -1,13 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <title>Home</title>
-    </head>
-    <body>
-        <ul>
-          <li><a href="/sleep">Sleep</a></li>
-          <li><a href="/habits">Habits</a></li>
-        </ul>
-    </body>
+<head>
+    <meta charset="utf-8">
+    <title>Home</title>
+</head>
+<body>
+    <nav>
+        {% if user.is_authenticated %}
+            <p>
+                {% if user.first_name %}
+                   Hello, {{ user.first_name }}!
+                {% else %}
+                    {{ user.username }}
+                {% endif %}
+            </p>
+            <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit">Logout</button>
+            </form>
+        {% else %}
+            <a href="{% url 'login' %}">Login</a> |
+            <a href="{% url 'register' %}">Register</a>
+        {% endif %}
+    </nav>
+    <hr>
+    <ul>
+        {% if user.is_authenticated %}
+            <li><a href="{% url 'sleep' %}">Sleep</a></li>
+            <li><a href="{% url 'habits' %}">Habits</a></li>
+        {% else %}
+            <p>Please log in to access tracking features.</p>
+        {% endif %}
+    </ul>
+</body>
 </html>
