@@ -1,0 +1,31 @@
+{% load static %}
+{% load socialaccount %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Login</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'styles/styles.css' %}">
+</head>
+<body>
+    <div >
+        <h2>Login</h2>
+
+        {% if error %}
+            <p>{{ error }}</p>
+        {% endif %}
+
+        <form method="POST" action="{% url 'login' %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            {{ form.as_p }}
+
+            <button type="submit">Login</button>
+
+        </form>
+        <p>Or continue with:</p>
+        <a href="{% provider_login_url 'google' %}"> Google </a>
+
+        <p>Don't have an account? <a href="{% url 'register' %}">Register here</a></p>
+    </div>
+</body>
+</html>

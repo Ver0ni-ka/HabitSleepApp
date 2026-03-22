@@ -11,13 +11,15 @@
                 {% if user.first_name %}
                    Hello, {{ user.first_name }}!
                 {% else %}
-                    {{ user.username }}
+                    Hello!
                 {% endif %}
             </p>
             <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                <!-- required Django template tag used within HTML <form> elements to prevent Cross-Site Request Forgery (CSRF) attacks -->
                 {% csrf_token %}
                 <button type="submit">Logout</button>
             </form>
+            <a href="{% url 'edit-profile' %}">Edit profile</a>
         {% else %}
             <a href="{% url 'login' %}">Login</a> |
             <a href="{% url 'register' %}">Register</a>
@@ -26,8 +28,8 @@
     <hr>
     <ul>
         {% if user.is_authenticated %}
-            <li><a href="{% url 'sleep' %}">Sleep</a></li>
-            <li><a href="{% url 'habits' %}">Habits</a></li>
+            <li><a href="{% url 'sleep-page' %}">Sleep</a></li>
+            <li><a href="{% url 'habits-page' %}">Habits</a></li>
         {% else %}
             <p>Please log in to access tracking features.</p>
         {% endif %}

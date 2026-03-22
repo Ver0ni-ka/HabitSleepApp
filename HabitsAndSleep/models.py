@@ -25,6 +25,18 @@ class SleepLog(models.Model):
     waketime = models.DateTimeField()
     quality = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)])
     comment = models.TextField(blank=True)
+
+    # @property -> To make duration not a function but an attribute -> log.duration
+    @property
+    def duration(self):
+        if self.waketime and self.bedtime:
+            delta = self.waketime - self.bedtime
+            total_seconds = delta.total_seconds()
+            hours = int(total_seconds // 3600)
+            minutes = int((total_seconds % 3600) // 60)
+            return f"{hours}h {minutes}m"
+        return "0h"
+
     def get_absolute_url(self):
         return reverse("sleep-detail", args=[str(self.id)])
 
@@ -34,6 +46,10 @@ class Habit(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     status = models.BooleanField(default=True)
+
+    def is_done_on(self, date):
+        return self.logs.filter(date=date, if_done=True).exists()
+
     def get_absolute_url(self):
         return reverse("habit-detail", args=[str(self.id)])
 

@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>My Habits</h2>
+
+{% for habit in habit_list %}
+    <div>
+        <span>- {{ habit.name }}</span>
+        <a href="{% url 'habit-edit' habit.id %}">⚙️</a>
+    </div>
+{% endfor %}
+    <a href="{% url 'habits-page' %}">Go back</a>
+
+{% endblock %}

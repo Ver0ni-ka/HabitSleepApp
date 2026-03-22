@@ -1,19 +1,60 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>Habits</title>
-</head>
-<body>
-    <h1>All habits: </h1>
-    {% for habit in habit_list %}
-        <p>{{ habit.name }}</p>
-    {% endfor %}
+{% extends 'base.html' %}
+{% block content %}
+<h2>My Habits</h2>
+    {% if habit_count < 12 %}
+        <a href="{% url 'habit-add' %}" >+ New Habit</a>
+    {% endif %}
 
-    <h1>Habits records: </h1>
-    {% for habit_log in habit_records %}
-        <p>{{ habit_log.habit.name }} : {{ habit_log.date }}, {{ habit_log.if_done }}</p>
-    {% endfor %}
+    <a href="{% url 'habit-list' %}" >All Habits</a>
 
-</body>
-</html>
+<table class="table table-bordered text-center">
+    <thead>
+        <tr>
+            <th>Habit</th>
+            {% for date in date_list %}
+                <th>{{ date|date:"D, d" }}</th>
+            {% endfor %}
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in tracker_data %}
+        <tr>
+            <td class="text-start"><strong>{{ row.habit.name }}</strong></td>
+            {% for day in row.history %}
+                <td
+                    id="cell-{{ row.habit.id }}-{{ day.date }}"
+                    class="habit-cell {% if day.is_done %}bg-success{% endif %}"
+                    style="cursor: pointer;"
+                    onclick="toggleHabit('{{ row.habit.id }}', '{{ day.date }}')">
+                    {% if day.is_done %}✅{% else %}—{% endif %}
+                </td>
+            {% endfor %}
+            <td>
+                <a href="{% url 'habit-edit' row.habit.id %}">⚙️</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+        <a href="{% url 'home' %}">Go back</a>
+
+<script>
+function toggleHabit(habitId, date) {
+    fetch(`/habits/toggle/${habitId}/${date}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const cell = document.getElementById(`cell-${habitId}-${date}`);
+                if (data.if_done) {
+                    cell.classList.add('bg-success');
+                    cell.innerText = '✅';
+                } else {
+                    cell.classList.remove('bg-success');
+                    cell.innerText = '—';
+                }
+            }
+        });
+}
+</script>
+{% endblock %}

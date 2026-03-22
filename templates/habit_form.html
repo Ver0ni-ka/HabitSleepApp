@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>{% if object %}Edit{% else %}New{% endif %} habit</h2>
+<form method="post">
+    {% csrf_token %}
+    <div>
+        <label>Name:</label>
+        {{ form.name }}
+    </div>
+    <div>
+        <label>Description:</label>
+        {{ form.description }}
+    </div>
+    <div>
+        {{ form.status }}
+        <label>Active</label>
+    </div>
+    <button type="submit">Save</button>
+    <a href="{% url 'habit-list' %}">Cancel</a>
+</form>
+    {% if object %}
+        <form method="post" action="{% url 'habit-delete' habit.id %}"
+              onsubmit="return confirm('Delete this habit and all its data?');">
+            {% csrf_token %}
+            <button type="submit">Delete</button>
+        </form>
+    {% endif %}
+{% endblock %}
