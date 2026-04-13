@@ -31,7 +31,6 @@ urlpatterns = [
     path('sleep/edit/<uuid:pk>/', views.sleep_edit, name='sleep-edit'),
     path('habits/', views.habit_tracker_view, name='habits-page'),
     path('habits/add/', views.HabitCreateView.as_view(), name='habit-add'),
-    path('habits/edit/<uuid:pk>/', views.HabitUpdateView.as_view(), name='habit-edit'),
     path('habits/toggle/<uuid:habit_id>/<str:date>/', views.toggle_habit, name='toggle-habit'),
     path("habits/<uuid:habit_id>/delete/", views.delete_habit, name="habit-delete"),
     path("habits/all", views.all_habit_list_view, name="habit-list"),

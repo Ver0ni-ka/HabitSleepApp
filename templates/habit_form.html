@@ -1,28 +1,48 @@
-{% extends 'base.html' %}
-{% block content %}
-<h2>{% if object %}Edit{% else %}New{% endif %} habit</h2>
-<form method="post">
-    {% csrf_token %}
-    <div>
-        <label>Name:</label>
-        {{ form.name }}
-    </div>
-    <div>
-        <label>Description:</label>
-        {{ form.description }}
-    </div>
-    <div>
-        {{ form.status }}
-        <label>Active</label>
-    </div>
-    <button type="submit">Save</button>
-    <a href="{% url 'habit-list' %}">Cancel</a>
-</form>
+<div class="modal-header drag-handle">
+    <span class="modal-title">{% if object %}Edit Habit{% else %}New Habit{% endif %}</span>
+    <button type="button" class="modal-close" onclick="closeHabitModal()">&times;</button>
+</div>
+<div class="modal-body">
+    <form method="post"
+          class="habit-modal-form"
+          hx-post="{{ request.path }}?view={{ view }}&week_change={{ week_change }}&day_change={{ day_change }}"
+          hx-target="#habitModalContent"
+          hx-swap="innerHTML">
+        {% csrf_token %}
+        <input type="hidden" name="view" value="{{ view }}">
+        <input type="hidden" name="week_change" value="{{ week_change }}">
+        <input type="hidden" name="day_change" value="{{ day_change }}">
+        <div class="modal-field">
+            <label>Name:</label>
+            {{ form.name }}
+        </div>
+        <div class="modal-field">
+            <label>Description:</label>
+            {{ form.description }}
+        </div>
+        <div class="modal-field modal-field-checkbox">
+            <label class="modal-check-row">
+                {{ form.status }}
+                <span>Active</span>
+            </label>
+        </div>
+        <div class="modal-actions">
+            <button type="submit" class="habit-btn">Save</button>
+            <button type="button" class="habit-btn" onclick="closeHabitModal()">Cancel</button>
+        </div>
+    </form>
     {% if object %}
-        <form method="post" action="{% url 'habit-delete' habit.id %}"
-              onsubmit="return confirm('Delete this habit and all its data?');">
+        <form method="post"
+              class="habit-delete-form"
+              hx-post="{% url 'habit-delete' object.id %}?view={{ view }}&week_change={{ week_change }}&day_change={{ day_change }}"
+              hx-target="#habitModalContent"
+              hx-swap="innerHTML"
+              hx-confirm="Delete this habit and all its data?">
             {% csrf_token %}
-            <button type="submit">Delete</button>
+            <input type="hidden" name="view" value="{{ view }}">
+            <input type="hidden" name="week_change" value="{{ week_change }}">
+            <input type="hidden" name="day_change" value="{{ day_change }}">
+            <button type="submit" class="habit-btn danger">Delete</button>
         </form>
     {% endif %}
-{% endblock %}
+</div>

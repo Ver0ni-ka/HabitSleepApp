@@ -1,38 +1,243 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>Home</title>
-</head>
-<body>
-    <nav>
-        {% if user.is_authenticated %}
-            <p>
-                {% if user.first_name %}
-                   Hello, {{ user.first_name }}!
-                {% else %}
-                    Hello!
-                {% endif %}
-            </p>
-            <form method="post" action="{% url 'logout' %}" style="display:inline;">
-                <!-- required Django template tag used within HTML <form> elements to prevent Cross-Site Request Forgery (CSRF) attacks -->
-                {% csrf_token %}
-                <button type="submit">Logout</button>
-            </form>
-            <a href="{% url 'edit-profile' %}">Edit profile</a>
-        {% else %}
-            <a href="{% url 'login' %}">Login</a> |
-            <a href="{% url 'register' %}">Register</a>
-        {% endif %}
-    </nav>
-    <hr>
-    <ul>
-        {% if user.is_authenticated %}
-            <li><a href="{% url 'sleep-page' %}">Sleep</a></li>
-            <li><a href="{% url 'habits-page' %}">Habits</a></li>
-        {% else %}
-            <p>Please log in to access tracking features.</p>
-        {% endif %}
-    </ul>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block content %}
+    {% if user.is_authenticated %}
+    <div class="home-hero">
+        <h1 class="home-greeting">
+            {% if user.first_name %}
+               Hello, {{ user.first_name }}!
+            {% else %}
+                Hello!
+            {% endif %}
+        </h1>
+    </div>
+
+    <div class="home-layout">
+        <div class="home-card">
+            <div class="home-grid">
+            <section class="home-col">
+                <h2 class="home-col-title">Habits</h2>
+                <ul class="habit-quick-list">
+                    {% for entry in active_habits %}
+                    <li class="habit-quick-item">
+                        <label>
+                            <input
+                                type="checkbox"
+                                class="habit-quick-check"
+                                data-habit-id="{{ entry.habit.id }}"
+                                {% if entry.is_done %}checked{% endif %}>
+                            <span>{{ entry.habit.name }}</span>
+                        </label>
+                    </li>
+                    {% empty %}
+                    <li class="habit-empty">No active habits yet.</li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+            <section class="home-col">
+                <h2 class="home-col-title">Sleep</h2>
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css">
+                <form id="quickSleepForm" class="sleep-quick-form">
+                    {% csrf_token %}
+                    <input type="hidden" id="quick_bedtime" name="bedtime" value="{{ sleep_log.bedtime|date:'H:i' }}">
+                    <input type="hidden" id="quick_waketime" name="waketime" value="{{ sleep_log.waketime|date:'H:i' }}">
+
+                    <div class="sleep-quick-row">
+                        <div class="sleep-quick-header">
+                            <span class="sleep-quick-label">Time Interval</span>
+                            <button type="button" class="sleep-quick-toggle" onclick="toggleQuickMode()">Manual</button>
+                        </div>
+                        <div id="quick_time_display" class="sleep-quick-time">--:-- - --:--</div>
+                        <div id="quick_sleep_slider" class="sleep-quick-slider"></div>
+                        <div id="quick_manual_wrap" class="sleep-quick-manual">
+                            <label for="quick_manual_bed">Bedtime</label>
+                            <input type="time" id="quick_manual_bed" value="{{ sleep_log.bedtime|date:'H:i' }}">
+                            <label for="quick_manual_wake">Waketime</label>
+                            <input type="time" id="quick_manual_wake" value="{{ sleep_log.waketime|date:'H:i' }}">
+                        </div>
+                    </div>
+                    <div class="sleep-quick-row">
+                        <label for="quick_quality">Quality: <span id="quick_q_val">{{ sleep_log.quality }}</span></label>
+                        <input type="range" id="quick_quality" name="quality" min="1" max="10"
+                               value="{{ sleep_log.quality }}">
+                    </div>
+                    <div class="sleep-quick-row">
+                        <label for="quick_comment">Comment</label>
+                        <textarea id="quick_comment" name="comment" rows="2">{{ sleep_log.comment|default_if_none:'' }}</textarea>
+                    </div>
+                    <button type="button" class="sleep-quick-save" id="quick_save_btn" onclick="saveQuickSleep()" disabled>
+                        Save
+                    </button>
+                </form>
+            </section>
+        </div>
+        <div class="home-date">{{ today_display }}</div>
+    </div>
+
+        <div class="home-actions" aria-label="Quick actions">
+        <a href="{% url 'habits-page' %}" class="home-action">
+            <span class="home-action-icon">H</span>
+            <span class="home-action-text">Habits</span>
+            <span class="home-action-arrow">&gt;</span>
+        </a>
+        <a href="{% url 'sleep-page' %}" class="home-action">
+            <span class="home-action-icon">S</span>
+            <span class="home-action-text">Sleep</span>
+            <span class="home-action-arrow">&gt;</span>
+        </a>
+        <a href="{% url 'home' %}" class="home-action">
+            <span class="home-action-icon">A</span>
+            <span class="home-action-text">Analytics</span>
+            <span class="home-action-arrow">&gt;</span>
+        </a>
+    </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
+    <script>
+        const todayStr = "{{ today_str }}";
+        let initialBedtime = "{{ sleep_log.bedtime|date:'H:i' }}";
+        let initialWaketime = "{{ sleep_log.waketime|date:'H:i' }}";
+        let initialQuality = "{{ sleep_log.quality }}";
+        let initialComment = "{{ sleep_log.comment|default_if_none:'' }}";
+        const quickSaveBtn = document.getElementById('quick_save_btn');
+        const quickManualWrap = document.getElementById('quick_manual_wrap');
+        const quickManualBed = document.getElementById('quick_manual_bed');
+        const quickManualWake = document.getElementById('quick_manual_wake');
+        const quickBedtime = document.getElementById('quick_bedtime');
+        const quickWaketime = document.getElementById('quick_waketime');
+        const quickTimeDisplay = document.getElementById('quick_time_display');
+        const quickSlider = document.getElementById('quick_sleep_slider');
+
+        function timeToMinutes(timeStr) {
+            const parts = timeStr.split(':').map(Number);
+            if (parts.length !== 2) return 0;
+            const h = parts[0], m = parts[1];
+            const total = (h * 60) + m;
+            return h < 18 ? total + 1440 : total;
+        }
+
+        function minutesToTime(totalMinutes) {
+            const h = Math.floor(totalMinutes / 60) % 24;
+            const m = totalMinutes % 60;
+            return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+        }
+
+        function toggleHabitQuick(habitId) {
+            fetch(`/habits/toggle/${habitId}/${todayStr}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        return;
+                    }
+                });
+        }
+
+        document.querySelectorAll('.habit-quick-check').forEach((input) => {
+            input.addEventListener('change', (e) => {
+                toggleHabitQuick(e.target.dataset.habitId);
+            });
+        });
+
+        document.getElementById('quick_quality').addEventListener('input', (e) => {
+            document.getElementById('quick_q_val').innerText = e.target.value;
+            updateSaveState();
+        });
+
+        document.getElementById('quick_comment').addEventListener('input', () => {
+            updateSaveState();
+        });
+
+        function updateTimeFields(bedStr, wakeStr) {
+            quickBedtime.value = bedStr;
+            quickWaketime.value = wakeStr;
+            quickManualBed.value = bedStr;
+            quickManualWake.value = wakeStr;
+            quickTimeDisplay.innerText = bedStr + ' - ' + wakeStr;
+            updateSaveState();
+        }
+
+        function updateSaveState() {
+            const currentBed = quickBedtime.value;
+            const currentWake = quickWaketime.value;
+            const currentQuality = document.getElementById('quick_quality').value;
+            const currentComment = document.getElementById('quick_comment').value;
+            const isChanged = (
+                currentBed !== initialBedtime ||
+                currentWake !== initialWaketime ||
+                String(currentQuality) !== String(initialQuality) ||
+                currentComment !== initialComment
+            );
+            quickSaveBtn.disabled = !isChanged;
+        }
+
+        function toggleQuickMode() {
+            quickManualWrap.classList.toggle('active');
+            const toggleBtn = document.querySelector('.sleep-quick-toggle');
+            if (quickManualWrap.classList.contains('active')) {
+                toggleBtn.innerText = 'Hide Manual';
+            } else {
+                toggleBtn.innerText = 'Manual';
+            }
+        }
+
+        quickManualBed.addEventListener('input', () => {
+            const bedStr = quickManualBed.value;
+            const wakeStr = quickManualWake.value;
+            quickSlider.noUiSlider.set([timeToMinutes(bedStr), timeToMinutes(wakeStr)]);
+            updateTimeFields(bedStr, wakeStr);
+        });
+
+        quickManualWake.addEventListener('input', () => {
+            const bedStr = quickManualBed.value;
+            const wakeStr = quickManualWake.value;
+            quickSlider.noUiSlider.set([timeToMinutes(bedStr), timeToMinutes(wakeStr)]);
+            updateTimeFields(bedStr, wakeStr);
+        });
+
+        noUiSlider.create(quickSlider, {
+            start: [timeToMinutes(initialBedtime), timeToMinutes(initialWaketime)],
+            connect: true,
+            step: 5,
+            range: {
+                min: 1080,
+                max: 2280
+            }
+        });
+
+        quickSlider.noUiSlider.on('update', function (values) {
+            let bTime = minutesToTime(Math.round(values[0]));
+            let wTime = minutesToTime(Math.round(values[1]));
+            updateTimeFields(bTime, wTime);
+        });
+
+        function saveQuickSleep() {
+            const formData = new FormData(document.getElementById('quickSleepForm'));
+            fetch("{% url 'sleep-page' %}", {
+                method: "POST",
+                body: formData,
+                headers: { "X-CSRFToken": "{{ csrf_token }}" }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'updated') {
+                    if (data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    } else {
+                        initialBedtime = quickBedtime.value;
+                        initialWaketime = quickWaketime.value;
+                        initialQuality = document.getElementById('quick_quality').value;
+                        initialComment = document.getElementById('quick_comment').value;
+                        updateSaveState();
+                    }
+                }
+            });
+        }
+    </script>
+    
+    {% else %}
+    <p>Please log in to access tracking features.</p>
+    {% endif %}
+{% endblock %}
+
+

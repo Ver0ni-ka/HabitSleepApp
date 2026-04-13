@@ -1,13 +1,31 @@
-{% extends 'base.html' %}
-{% block content %}
-<h2>My Habits</h2>
-
-{% for habit in habit_list %}
-    <div>
-        <span>- {{ habit.name }}</span>
-        <a href="{% url 'habit-edit' habit.id %}">⚙️</a>
-    </div>
-{% endfor %}
-    <a href="{% url 'habits-page' %}">Go back</a>
-
-{% endblock %}
+<div class="modal-header drag-handle">
+    <span class="modal-title">All Habits</span>
+    <button type="button" class="modal-close" onclick="closeHabitModal()">&times;</button>
+</div>
+<div class="modal-body">
+    {% if habit_list %}
+        <div class="habit-list">
+            {% for habit in habit_list %}
+                <div class="habit-list-item">
+                    <div class="habit-list-text">
+                        <div class="habit-list-name">{{ habit.name }}</div>
+                        {% if habit.description %}
+                            <div class="habit-list-desc">{{ habit.description }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="habit-list-actions">
+                        <button type="button"
+                                class="habit-btn"
+                                hx-get="{% url 'habit-edit' habit.id %}?view={{ view }}&week_change={{ week_change }}&day_change={{ day_change }}"
+                                hx-target="#habitModalContent"
+                                hx-swap="innerHTML">
+                            Edit
+                        </button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="habit-empty">No habits yet.</div>
+    {% endif %}
+</div>

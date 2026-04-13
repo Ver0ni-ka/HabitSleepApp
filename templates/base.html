@@ -1,13 +1,74 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Tracker{% endblock %}</title>
+
+    <link rel="stylesheet" href="{% static 'styles/styles.css' %}?v=2.2">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
 </head>
 <body>
-    <div class="container">
-        {% block content %}
-        {% endblock %}
+
+{% if user.is_authenticated %}
+<header class="header">
+    <button class="menu-btn" onclick="toggleSidebar()">
+        ☰
+    </button>
+</header>
+
+<div id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+        <span></span>
+        <button onclick="toggleSidebar()">✕</button>
     </div>
+
+    <nav class="nav">
+        <a href="{% url 'home' %}" class="nav-item">🏠 Home</a>
+        <a href="{% url 'habits-page' %}" class="nav-item">✅ Habits</a>
+        <a href="{% url 'sleep-page' %}" class="nav-item">🌙 Sleep</a>
+        <a href="{% url 'home' %}" class="nav-item">📊 Analytics</a>
+        <a href="{% url 'edit-profile' %}" class="nav-item">👤 Profile</a>
+        <form method="post" action="{% url 'logout' %}" class="nav-item logout-link">
+            {% csrf_token %}
+            <a href="#" onclick="this.closest('form').submit(); return false;">Logout</a>
+        </form>
+    </nav>
+</div>
+
+<div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+
+{% else %}
+<header class="header">
+    <nav class="auth-links">
+        <a href="{% url 'login' %}">Login</a>
+        <span>|</span>
+        <a href="{% url 'register' %}">Register</a>
+    </nav>
+</header>
+{% endif %}
+
+<main class="content">
+    {% block content %}
+
+    {% endblock %}
+</main>
+<footer class="footer">
+
+</footer>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById("sidebar").classList.toggle("active");
+        document.getElementById("overlay").classList.toggle("active");
+    }
+
+    feather.replace();
+</script>
+
 </body>
 </html>
+
+

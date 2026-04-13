@@ -1,60 +1,264 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>My Habits</h2>
-    {% if habit_count < 12 %}
-        <a href="{% url 'habit-add' %}" >+ New Habit</a>
-    {% endif %}
+<div class="habit-page">
+    <div class="habit-content-shell habit-content-shell-{{ view }}">
+        <div class="habit-topbar">
+            <div class="habit-header-tools">
+                <div class="habit-view-dropdown">
+                    <button class="habit-btn" id="viewToggle">&#8942;</button>
+                    <ul id="viewMenu" class="view-menu">
+                        <li onclick="changeView('weekly')">Weekly</li>
+                        <li onclick="changeView('monthly')">Monthly</li>
+                        <li onclick="changeView('yearly')">Yearly</li>
+                    </ul>
+                </div>
+                <a href="{% url 'home' %}" class="habit-btn">&times;</a>
+            </div>
+        </div>
+        <div class="habit-header">
+            <div class="habit-week-nav">
+                {% if view == 'daily' %}
+                    <a href="?view={{ view }}&day_change={{ day_change|add:"-1" }}">&#8592;</a>
+                {% else %}
+                    <a href="?view={{ view }}&week_change={{ week_change|add:"-1" }}">&#8592;</a>
+                {% endif %}
+                <span>
+                    {% if view == 'daily' %}
+                        {{ start_date|date:"d.m.Y" }}
+                    {% elif view == 'monthly' %}
+                        {{ start_date|date:"F Y" }}
+                    {% elif view == 'yearly' %}
+                        {{ start_date|date:"Y" }}
+                    {% else %}
+                        {{ start_date|date:"d.m.Y" }} - {{ end_date|date:"d.m.Y" }}
+                    {% endif %}
+                </span>
+                <span class="mobile-only">Day view</span>
+                {% if view == 'daily' %}
+                    <a href="?view={{ view }}&day_change={{ day_change|add:"1" }}">&#8594;</a>
+                {% else %}
+                    <a href="?view={{ view }}&week_change={{ week_change|add:"1" }}">&#8594;</a>
+                {% endif %}
+            </div>
+        </div>
 
-    <a href="{% url 'habit-list' %}" >All Habits</a>
+        <div class="habit-table-shell habit-table-shell-{{ view }}">
+            <table id="habitTable" class="habit-table {% if view == 'daily' %}daily-view{% endif %}">
+                <thead>
+                    <tr>
+                        <th class="habit-name">Habit</th>
+                        {% for date in date_list %}
+                            <th class="day-col {% if view == 'yearly' and date.month == today_month and date.year == today_year %}today{% elif view != 'yearly' and date == today %}today{% endif %}">
+                                {% if view == 'yearly' %}
+                                    {{ date|date:"M" }}
+                                {% else %}
+                                    {{ date|date:"d" }}
+                                {% endif %}
+                            </th>
+                        {% endfor %}
+                        <th class="habit-settings-col">&#9881;</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in tracker_data %}
+                    <tr>
+                        <td class="habit-name">{{ row.habit.name }}</td>
+                        {% for day in row.history %}
+                            <td id="cell-{{ row.habit.id }}-{{ day.date }}"
+                                class="habit-cell day-col {% if day.is_done %}done{% endif %} {% if day.is_future %}future{% endif %} {% if day.is_today %}today{% endif %} {% if day.is_yearly %}yearly{% endif %}"
+                                {% if not day.is_future and not day.is_yearly %}onclick="toggleHabit('{{ row.habit.id }}', '{{ day.date }}')" {% endif %}>
+                                {% if day.is_yearly %}
+                                    {{ day.display }}
+                                {% else %}
+                                    {% if day.is_done %}&#10003;{% else %}&mdash;{% endif %}
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                        <td>
+                            <button type="button"
+                                    class="habit-edit-btn"
+                                    hx-get="{% url 'habit-edit' row.habit.id %}?view={{ view }}&week_change={{ week_change }}&day_change={{ day_change }}"
+                                    hx-target="#habitModalContent"
+                                    hx-swap="innerHTML">
+                                &#9881;
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
-<table class="table table-bordered text-center">
-    <thead>
-        <tr>
-            <th>Habit</th>
-            {% for date in date_list %}
-                <th>{{ date|date:"D, d" }}</th>
-            {% endfor %}
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for row in tracker_data %}
-        <tr>
-            <td class="text-start"><strong>{{ row.habit.name }}</strong></td>
-            {% for day in row.history %}
-                <td
-                    id="cell-{{ row.habit.id }}-{{ day.date }}"
-                    class="habit-cell {% if day.is_done %}bg-success{% endif %}"
-                    style="cursor: pointer;"
-                    onclick="toggleHabit('{{ row.habit.id }}', '{{ day.date }}')">
-                    {% if day.is_done %}✅{% else %}—{% endif %}
-                </td>
-            {% endfor %}
-            <td>
-                <a href="{% url 'habit-edit' row.habit.id %}">⚙️</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-        <a href="{% url 'home' %}">Go back</a>
+        <div class="habit-actions-row">
+            <div class="habit-actions">
+                <button type="button"
+                        class="habit-btn"
+                        hx-get="{% url 'habit-add' %}?view={{ view }}&week_change={{ week_change }}&day_change={{ day_change }}"
+                        hx-target="#habitModalContent"
+                        hx-swap="innerHTML">
+                    + Add Habit
+                </button>
+                <button type="button"
+                        class="habit-btn"
+                        hx-get="{% url 'habit-list' %}?view={{ view }}&week_change={{ week_change }}&day_change={{ day_change }}"
+                        hx-target="#habitModalContent"
+                        hx-swap="innerHTML">
+                    All Habits
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="habitTableRefresh"
+     hx-get="{% url 'habits-page' %}?view={{ view }}&week_change={{ week_change }}&day_change={{ day_change }}"
+     hx-trigger="refresh-habits from:body"
+     hx-target="#habitTable"
+     hx-select="#habitTable"
+     hx-swap="outerHTML">
+</div>
+
+<div id="habitModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-window">
+        <div id="habitModalContent"></div>
+    </div>
+</div>
 
 <script>
 function toggleHabit(habitId, date) {
     fetch(`/habits/toggle/${habitId}/${date}/`)
         .then(response => response.json())
         .then(data => {
-            if (data.status === 'success') {
-                const cell = document.getElementById(`cell-${habitId}-${date}`);
-                if (data.if_done) {
-                    cell.classList.add('bg-success');
-                    cell.innerText = '✅';
-                } else {
-                    cell.classList.remove('bg-success');
-                    cell.innerText = '—';
-                }
+            const cell = document.getElementById(`cell-${habitId}-${date}`);
+            if (data.if_done) {
+                cell.classList.add('done');
+                cell.innerText = '\u2713';
+            } else {
+                cell.classList.remove('done');
+                cell.innerText = '\u2014';
             }
         });
 }
+
+function changeWeek(change) {
+    window.location.href = `?week_change=${change}`;
+}
+
+document.getElementById('viewToggle').addEventListener('click', () => {
+    const menu = document.getElementById('viewMenu');
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+});
+
+function changeView(view) {
+    window.location.href = `?view=${view}`;
+}
+
+function isSmallScreenModal() {
+    return window.matchMedia('(max-width: 700px)').matches;
+}
+
+function resetModalWindowPosition() {
+    const modalWindow = document.querySelector('#habitModal .modal-window');
+    if (!modalWindow) {
+        return;
+    }
+
+    modalWindow.style.removeProperty('left');
+    modalWindow.style.removeProperty('top');
+    modalWindow.style.removeProperty('transform');
+}
+
+function openHabitModal() {
+    const modal = document.getElementById('habitModal');
+    resetModalWindowPosition();
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeHabitModal() {
+    const modal = document.getElementById('habitModal');
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    resetModalWindowPosition();
+    const content = document.getElementById('habitModalContent');
+    content.innerHTML = '';
+}
+
+function bindModalDrag() {
+    const modalWindow = document.querySelector('#habitModal .modal-window');
+    if (!modalWindow || modalWindow.dataset.dragBound === 'true') {
+        return;
+    }
+    const handle = modalWindow.querySelector('.drag-handle');
+    if (!handle) {
+        return;
+    }
+
+    if (isSmallScreenModal()) {
+        modalWindow.dataset.dragBound = 'true';
+        return;
+    }
+
+    modalWindow.dataset.dragBound = 'true';
+
+    let startX = 0;
+    let startY = 0;
+    let startLeft = 0;
+    let startTop = 0;
+
+    const onMouseMove = (event) => {
+        const dx = event.clientX - startX;
+        const dy = event.clientY - startY;
+        modalWindow.style.left = `${startLeft + dx}px`;
+        modalWindow.style.top = `${startTop + dy}px`;
+    };
+
+    const onMouseUp = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    handle.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+        const rect = modalWindow.getBoundingClientRect();
+        startX = event.clientX;
+        startY = event.clientY;
+        startLeft = rect.left;
+        startTop = rect.top;
+        modalWindow.style.transform = 'translate(0, 0)';
+        modalWindow.style.left = `${startLeft}px`;
+        modalWindow.style.top = `${startTop}px`;
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    });
+}
+
+document.getElementById('habitModal').addEventListener('click', (event) => {
+    if (event.target.id === 'habitModal') {
+        closeHabitModal();
+    }
+});
+
+document.body.addEventListener('htmx:afterSwap', (event) => {
+    if (event.target.id === 'habitModalContent') {
+        const content = event.target.innerHTML.trim();
+        if (content.length > 0) {
+            const modalWindow = document.querySelector('#habitModal .modal-window');
+            if (modalWindow) {
+                modalWindow.dataset.dragBound = 'false';
+            }
+            openHabitModal();
+            bindModalDrag();
+        } else {
+            closeHabitModal();
+        }
+    }
+});
+
+window.addEventListener('resize', () => {
+    if (isSmallScreenModal()) {
+        resetModalWindowPosition();
+    }
+});
 </script>
 {% endblock %}
