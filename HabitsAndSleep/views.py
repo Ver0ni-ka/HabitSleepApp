@@ -343,11 +343,17 @@ def sleep_view(request):
             return JsonResponse({'status': 'error', 'message': 'Future dates not allowed'}, status=400)
             
         update_sleep_log_from_post(target_log, request.POST)
-        return JsonResponse({
+        is_quick = request.POST.get('is_quick') == 'true'
+        if is_htmx(request) and not is_quick:
+            context = get_sleep_tracker_context(request)
+            return render(request, 'sleep.html', context)
+        response_data = {
             'status': 'updated',
             'duration': target_log.duration,
-            'redirect_url': f"{reverse_lazy('sleep-page')}?view={context['view']}&week_change={context['week_change']}"
-        })
+        }
+        if not is_quick:
+            response_data['redirect_url'] = f"{reverse_lazy('sleep-page')}?view={context['view']}&week_change={context['week_change']}"
+        return JsonResponse(response_data)
 
     return render(request, 'sleep.html', context)
 

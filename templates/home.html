@@ -39,6 +39,7 @@
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css">
                 <form id="quickSleepForm" class="sleep-quick-form">
                     {% csrf_token %}
+                    <input type="hidden" name="is_quick" value="true">
                     <input type="hidden" id="quick_bedtime" name="bedtime" value="{{ sleep_log.bedtime|date:'H:i' }}">
                     <input type="hidden" id="quick_waketime" name="waketime" value="{{ sleep_log.waketime|date:'H:i' }}">
 
