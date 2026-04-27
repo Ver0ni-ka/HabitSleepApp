@@ -1,24 +1,65 @@
-{% load static %}
+{% extends 'base.html' %}
 {% load socialaccount %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>Register</title>
-    <link rel="stylesheet" type="text/css" href=" {% static 'styles/styles.css' %}">
-</head>
-<body>
-    <div>
-        <h2>Register</h2>
-        <form method="POST" action="{% url 'register' %}">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">Register</button>
-        </form>
 
-        <p>Or continue with:</p>
-        <a href="{% provider_login_url 'google' %}"> Google </a>
+{% block title %}Register{% endblock %}
 
+{% block content %}
+    {% provider_login_url 'google' as google_login_url %}
+    <div class="habit-page account-page">
+        <div class="habit-content-shell account-shell">
+            <div class="home-card account-card">
+                <div class="account-header">
+                    <h2 class="home-col-title account-title">Register</h2>
+                </div>
+
+                {% if form.non_field_errors %}
+                    <div class="account-alert">
+                        {% for err in form.non_field_errors %}
+                            <div>{{ err }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" action="{{ register_url }}" class="habit-modal-form account-form">
+                    {% csrf_token %}
+                    {% for hidden in form.hidden_fields %}
+                        {{ hidden }}
+                    {% endfor %}
+
+                    {% for field in form.visible_fields %}
+                        <div class="modal-field {% if field.field.widget.input_type == 'checkbox' %}modal-field-checkbox{% endif %}">
+                            {% if field.field.widget.input_type == 'checkbox' %}
+                                <label class="modal-check-row" for="{{ field.id_for_label }}">
+                                    {{ field }}
+                                    <span>{{ field.label }}</span>
+                                </label>
+                            {% else %}
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                            {% endif %}
+
+                            {% if field.errors %}
+                                <div class="account-field-errors">
+                                    {% for err in field.errors %}
+                                        <div>{{ err }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <div class="modal-actions">
+                        <button type="submit" class="habit-btn">Register</button>
+                    </div>
+                </form>
+
+                <div class="account-divider">Or continue with</div>
+                <a href="{{ google_login_url }}" class="habit-btn account-provider-btn">Google</a>
+
+                <p class="account-footer">
+                    Already have an account? <a href="{{ login_url }}">Log in</a>
+                </p>
+            </div>
+        </div>
     </div>
-
-</body>
-</html>
+{% endblock %}

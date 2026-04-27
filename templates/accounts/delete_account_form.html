@@ -1,17 +1,24 @@
-<div id="changePasswordContent">
+<div id="deleteAccountContent">
     <div class="modal-header drag-handle">
-        <span class="modal-title">Change password</span>
+        <span class="modal-title">Delete account</span>
         <button type="button" class="modal-close" onclick="closeAccountModal()">&times;</button>
     </div>
     <div class="modal-body">
-        {% if password_change_blocked %}
+        {% if delete_account_blocked %}
             <div class="account-alert">
-                Password changes are unavailable for Google sign-in accounts.
+                Account deletion here requires a local password. This Google sign-in account cannot be deleted from this form.
             </div>
             <div class="modal-actions">
                 <button type="button" class="habit-btn" onclick="closeAccountModal()">Close</button>
             </div>
         {% else %}
+            <div class="account-danger-block">
+                <div class="account-danger-title">Permanent deletion</div>
+                <div class="account-danger-text">
+                    This will permanently delete your account and all related habit and sleep data. This action cannot be undone.
+                </div>
+            </div>
+
             {% if form.non_field_errors %}
                 <div class="account-alert">
                     {% for err in form.non_field_errors %}
@@ -21,17 +28,12 @@
             {% endif %}
 
             <form method="post"
-                  action="{{ request.path }}"
                   class="habit-modal-form account-form"
-                  hx-post="{% url 'change-password-modal' %}"
+                  hx-post="{% url 'delete-account' %}"
                   hx-target="#accountModalContent"
-                  hx-select="#changePasswordContent"
+                  hx-select="#deleteAccountContent"
                   hx-swap="innerHTML">
                 {% csrf_token %}
-                {% for hidden in form.hidden_fields %}
-                    {{ hidden }}
-                {% endfor %}
-
                 {% for field in form.visible_fields %}
                     <div class="modal-field">
                         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
@@ -48,7 +50,11 @@
                 {% endfor %}
 
                 <div class="modal-actions">
-                    <button type="submit" class="habit-btn">Save</button>
+                    <button type="submit"
+                            class="habit-btn danger"
+                            onclick="return confirm('Are you sure you want to permanently delete your account and all related data?')">
+                        Delete permanently
+                    </button>
                     <button type="button" class="habit-btn" onclick="closeAccountModal()">Cancel</button>
                 </div>
             </form>

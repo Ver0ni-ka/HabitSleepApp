@@ -1,19 +1,37 @@
 import calendar
 import datetime
-from django.contrib import messages
 from datetime import timedelta
-
-from django.contrib.auth.forms import PasswordChangeForm
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import render, redirect, get_object_or_404
-from .models import SleepLog, Habit, HabitLog, User
-from django.views.generic import CreateView, UpdateView
-from django.urls import reverse_lazy
+from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from .forms import MyUserCreationForm, LoginForm, ProfileEditForm
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.views.generic import CreateView, UpdateView
+from .forms import DeleteAccountForm, LoginForm, MyUserCreationForm, ProfileEditForm, StyledPasswordChangeForm
+from .models import Habit, HabitLog, SleepLog, User
+
+# Helpers
+TRACKER_VIEWS = ('weekly', 'monthly', 'yearly')
+MAX_HABITS = 12
+
+def user_can_change_password(user):
+    has_google_account = SocialAccount.objects.filter(user=user, provider='google').exists()
+    return user.has_usable_password() and not has_google_account
+
+def is_htmx(request):
+    return request.headers.get('HX-Request') == 'true'
+
+# Tells the browser to close popup and refresh
+def close_modal_response(target_id, trigger=None, redirect_url=None):
+    response = HttpResponse(f'<div id="{target_id}" hx-swap-oob="innerHTML"></div>')
+    if trigger:
+        response['HX-Trigger'] = trigger
+    if redirect_url:
+        response['HX-Redirect'] = redirect_url
+    return response
 
 # Authentication
 def register_view(request):
@@ -25,7 +43,11 @@ def register_view(request):
             return redirect('home')
     else:
         form = MyUserCreationForm()
-    return render(request, 'accounts/register.html', {'form': form})
+    return render(request, 'accounts/register.html', {
+        'form': form,
+        'register_url': reverse('register'),
+        'login_url': reverse('login'),
+    })
 
 def login_view(request):
     error_message = None
@@ -35,28 +57,33 @@ def login_view(request):
         if form.is_valid():
             email = form.cleaned_data.get("email")
             password = form.cleaned_data.get("password")
-            try:
-                user_obj = User.objects.get(email=email)
-                user = authenticate(request, username=user_obj.username, password=password)
-            except User.DoesNotExist:
-                user = None
+            user_obj = User.objects.filter(email=email).first()
+            user = authenticate(request, username=user_obj.username, password=password) if user_obj else None
 
             if user is not None:
                 login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                if not form.cleaned_data.get('remember_me'):
+                    request.session.set_expiry(0)
                 return redirect(next_url or 'home')
-            else:
-                error_message = "Invalid credentials"
+            error_message = "Invalid credentials"
     else:
         form = LoginForm()
-    return render(request, 'accounts/login.html', {'form': form, 'error': error_message, 'next': next_url})
+
+    return render(request, 'accounts/login.html', {
+        'form': form,
+        'error': error_message,
+        'next': next_url,
+        'login_url': reverse('login'),
+        'register_url': reverse('register'),
+        'hidden_fields': [{'name': 'next', 'value': next_url}],
+    })
 
 @login_required
 def logout_view(request):
     if request.method == "POST":
         logout(request)
         return redirect('login')
-    else:
-        return redirect('home')
+    return redirect('home')
 
 @login_required
 def edit_profile(request):
@@ -67,19 +94,64 @@ def edit_profile(request):
             return redirect('home')
     else:
         form = ProfileEditForm(instance=request.user)
-    return render(request, 'accounts/edit_profile.html', {'form': form})
+    return render(request, 'accounts/edit_profile.html', {
+        'form': form,
+        'change_password_url': reverse('change-password-modal'),
+        'delete_account_url': reverse('delete-account'),
+        'can_change_password': user_can_change_password(request.user),
+        'profile_email': request.user.email,
+    })
 
 @login_required
 def change_password(request):
+    if not is_htmx(request):
+        return redirect('edit-profile')
+
+    if not user_can_change_password(request.user):
+        return render(request, 'accounts/change_password.html', {
+            'form': None,
+            'password_change_blocked': True,
+        })
+
     if request.method == 'POST':
-        form = PasswordChangeForm(request.user, request.POST)
+        form = StyledPasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             user = form.save()
             update_session_auth_hash(request, user)
-            return redirect('edit-profile')
+            return HttpResponse('', headers={'HX-Trigger': 'password-changed'})
     else:
-        form = PasswordChangeForm(request.user)
-    return render(request, 'accounts/change_password.html', {'form': form})
+        form = StyledPasswordChangeForm(request.user)
+    return render(request, 'accounts/change_password.html', {
+        'form': form,
+        'password_change_blocked': False,
+    })
+
+
+@login_required
+def delete_account(request):
+    if not request.user.has_usable_password():
+        if is_htmx(request):
+            return render(request, 'accounts/delete_account_form.html', {
+                'form': None,
+                'delete_account_blocked': True,
+            })
+        return redirect('edit-profile')
+    if request.method == 'POST':
+        form = DeleteAccountForm(request.user, request.POST)
+        if form.is_valid():
+            user = request.user
+            logout(request)
+            user.delete()
+            if is_htmx(request):
+                return close_modal_response('accountModalContent', redirect_url=reverse('login'))
+            return redirect('home')
+    else:
+        form = DeleteAccountForm(request.user)
+
+    if is_htmx(request):
+        return render(request, 'accounts/delete_account_form.html', {'form': form,})
+
+    return redirect('edit-profile')
 
 def home(request):
     context = {}
@@ -129,7 +201,7 @@ def update_sleep_log_from_post(sleep_log, post_data):
     log_date = sleep_log.date
     dt_bed = timezone.make_aware(datetime.datetime.combine(log_date, b_time))
     dt_wake = timezone.make_aware(datetime.datetime.combine(log_date, w_time))
-
+    # If waketime is earlier than bedtime, the user went to bed "yesterday"
     if dt_wake <= dt_bed:
         dt_bed -= timedelta(days=1)
 
@@ -140,7 +212,7 @@ def update_sleep_log_from_post(sleep_log, post_data):
     sleep_log.save()
     return sleep_log
 
-
+# Math to turn sleep hours into CSS %s for the visual bar
 def get_sleep_timeline_metrics(sleep_log):
     timeline_start = 21 * 60
     timeline_end = (24 * 60) + (13 * 60)
@@ -157,7 +229,7 @@ def get_sleep_timeline_metrics(sleep_log):
 
     clamped_start = max(timeline_start, min(start_m, timeline_end))
     clamped_end = max(clamped_start, min(end_m, timeline_end))
-
+    # Figures out where the blue bar starts and how wide it should be
     left_pct = ((clamped_start - timeline_start) / total_minutes) * 100
     width_pct = max(((clamped_end - clamped_start) / total_minutes) * 100, 2)
 
@@ -172,25 +244,21 @@ def get_sleep_timeline_metrics(sleep_log):
 def parse_date_params(request):
     view = request.GET.get('view') or request.POST.get('view') or 'weekly'
     week_change = 0
-    day_change = 0
     try:
         wc_val = request.GET.get('week_change') or request.POST.get('week_change')
         if wc_val:
             week_change = int(wc_val)
-        dc_val = request.GET.get('day_change') or request.POST.get('day_change')
-        if dc_val:
-            day_change = int(dc_val)
     except (TypeError, ValueError):
         pass
-    return view, week_change, day_change
+    return view, week_change
 
-def get_sleep_tracker_context(request, selected_log=None):
+def get_sleep_tracker_context(request):
     today = timezone.localdate()
-    view, week_change, day_change = parse_date_params(request)
-    if view not in ['weekly', 'monthly', 'yearly']:
+    view, week_change = parse_date_params(request)
+    if view not in TRACKER_VIEWS:
         view = 'weekly'
 
-    start_date, end_date, date_list = get_date_range(view, today, week_change, day_change)
+    start_date, end_date, date_list = get_tracker_date_range(view, today, week_change)
     today_log, _ = get_or_create_sleep_log(request.user, today)
 
     if view == 'yearly':
@@ -198,11 +266,11 @@ def get_sleep_tracker_context(request, selected_log=None):
             user=request.user,
             date__year=start_date.year
         ).order_by('date')
-        
+
         monthly_data = {m: [] for m in range(1, 13)}
         for log in logs:
             monthly_data[log.date.month].append(log)
-        
+
         logs_by_date = {}
     else:
         logs = SleepLog.objects.filter(
@@ -211,30 +279,25 @@ def get_sleep_tracker_context(request, selected_log=None):
         ).order_by('date')
         logs_by_date = {log.date: log for log in logs}
 
-    logs_by_id = {str(log.id): log for log in logs}
-    logs_by_id[str(today_log.id)] = today_log
-    if not view == 'yearly':
+    if view != 'yearly':
         logs_by_date[today] = today_log
 
-    selected_id = request.GET.get('selected') or request.POST.get('selected') or ''
-    selected_date_raw = request.GET.get('selected_date') or request.POST.get('selected_date') or ''
+    selected_date_raw = request.GET.get('selected_date') or request.POST.get('selected_date')
 
-    if selected_log is None and selected_id:
-        selected_log = logs_by_id.get(selected_id)
-        if selected_log is None:
-            selected_log = SleepLog.objects.filter(user=request.user, pk=selected_id).first()
-
-    if selected_log is None and selected_date_raw:
+    if selected_date_raw:
         try:
             selected_date = datetime.datetime.strptime(selected_date_raw, '%Y-%m-%d').date()
         except ValueError:
             selected_date = today
+    else:
+        selected_date = today
+
+    if selected_date > today:
+        selected_log = today_log
+    else:
         selected_log, _ = get_or_create_sleep_log(request.user, selected_date)
 
-    if selected_log is None:
-        selected_log = today_log
-
-    if not view == 'yearly' and selected_log.date not in logs_by_date:
+    if view != 'yearly' and selected_log.date not in logs_by_date:
         logs_by_date[selected_log.date] = selected_log
 
     tracker_rows = []
@@ -243,7 +306,7 @@ def get_sleep_tracker_context(request, selected_log=None):
             is_future = (d.year, d.month) > (today.year, today.month)
             is_today = (d.year, d.month) == (today.year, today.month)
             month_logs = monthly_data.get(d.month, [])
-            
+
             avg_duration_str = "—"
             avg_quality = "—"
             if month_logs:
@@ -273,10 +336,10 @@ def get_sleep_tracker_context(request, selected_log=None):
             sleep_log = logs_by_date.get(d)
             if d == today:
                 sleep_log = today_log
-            
+
             is_future = d > today
-            is_selected = not is_future and sleep_log is not None and sleep_log.id == selected_log.id
-            
+            is_selected = not is_future and sleep_log is not None and sleep_log.date == selected_log.date
+
             if d == today:
                 label = 'Today'
             elif d == today - timedelta(days=1):
@@ -295,7 +358,7 @@ def get_sleep_tracker_context(request, selected_log=None):
                 'is_today': d == today,
                 'is_future': is_future,
                 'is_selected': is_selected,
-                'edit_query': f"?view={view}&week_change={week_change}&day_change={day_change}&selected_date={d.strftime('%Y-%m-%d')}" if not is_future else None,
+                'edit_query': f"?view={view}&week_change={week_change}&selected_date={d.strftime('%Y-%m-%d')}" if not is_future else None,
                 'is_yearly': False,
             }
 
@@ -314,7 +377,6 @@ def get_sleep_tracker_context(request, selected_log=None):
         'start_date': start_date,
         'end_date': end_date,
         'week_change': week_change,
-        'day_change': day_change,
         'view': view,
         'is_future_period': end_date > today,
         'today': today,
@@ -333,7 +395,7 @@ def get_sleep_tracker_context(request, selected_log=None):
 @login_required
 def sleep_view(request):
     context = get_sleep_tracker_context(request)
-    
+
     # Server-side check to prevent adding sleep for future dates
     if request.method == 'POST':
         if context['view'] == 'yearly':
@@ -341,12 +403,9 @@ def sleep_view(request):
         target_log = context['sleep_log']
         if target_log.date > timezone.localdate():
             return JsonResponse({'status': 'error', 'message': 'Future dates not allowed'}, status=400)
-            
+
         update_sleep_log_from_post(target_log, request.POST)
         is_quick = request.POST.get('is_quick') == 'true'
-        if is_htmx(request) and not is_quick:
-            context = get_sleep_tracker_context(request)
-            return render(request, 'sleep.html', context)
         response_data = {
             'status': 'updated',
             'duration': target_log.duration,
@@ -357,12 +416,8 @@ def sleep_view(request):
 
     return render(request, 'sleep.html', context)
 
-@login_required
-def is_htmx(request):
-    return request.headers.get('HX-Request') == 'true'
-
-
-def get_date_range(view, today, week_change, day_change):
+# Figures out which dates to show on the calendar (week, month, or year)
+def get_tracker_date_range(view, today, week_change):
     if view == 'monthly':
         month_offset = (today.month - 1) + week_change
         year = today.year + (month_offset // 12)
@@ -378,9 +433,6 @@ def get_date_range(view, today, week_change, day_change):
         end = datetime.date(year, 12, 31)
         date_list = [datetime.date(year, month, 1) for month in range(1, 13)]
         return start, end, date_list
-    elif view == 'daily':
-        target_day = today + timedelta(days=day_change)
-        return target_day, target_day, [target_day]
     else: # weekly
         start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_change)
         end = start + timedelta(days=6)
@@ -389,15 +441,14 @@ def get_date_range(view, today, week_change, day_change):
 
 def get_habit_tracker_context(request):
     today = timezone.localdate()
-    view, week_change, day_change = parse_date_params(request)
-    if view not in ['daily', 'weekly', 'monthly', 'yearly']:
+    view, week_change = parse_date_params(request)
+    if view not in TRACKER_VIEWS:
         view = 'weekly'
 
-    start_of_week, end_of_week, date_list = get_date_range(view, today, week_change, day_change)
+    start_of_week, end_of_week, date_list = get_tracker_date_range(view, today, week_change)
 
     habits = Habit.objects.filter(user=request.user, status=True)
-    habit_count = Habit.objects.filter(user=request.user).count()
-    
+
     if view == 'yearly':
         logs = HabitLog.objects.filter(
             habit__in=habits,
@@ -432,6 +483,7 @@ def get_habit_tracker_context(request):
                     'date': d.strftime('%Y-%m-%d'),
                     'is_done': False,
                     'display': display,
+                    'day_label': d.strftime('%b'),
                     'is_future': is_future,
                     'is_today': is_today,
                     'is_yearly': True,
@@ -441,6 +493,7 @@ def get_habit_tracker_context(request):
                     'date': d.strftime('%Y-%m-%d'),
                     'is_done': logs_dict.get((habit.id, d), False),
                     'display': None,
+                    'day_label': d.strftime('%d.%m %a'),
                     'is_future': d > today,
                     'is_today': d == today,
                     'is_yearly': False,
@@ -450,21 +503,22 @@ def get_habit_tracker_context(request):
     return {
         'date_list': date_list,
         'tracker_data': tracker_data,
-        'habit_count': habit_count,
         'week_change': week_change,
-        'day_change': day_change,
         'start_date': start_of_week,
         'end_date': end_of_week,
         'view': view,
         'today': today,
         'today_month': today.month,
         'today_year': today.year,
+        'can_add_habit': habits.count() < MAX_HABITS,
     }
 
 
+@login_required
 def habit_tracker_view(request):
     context = get_habit_tracker_context(request)
     return render(request, 'habits.html', context)
+
 class HabitCreateView(LoginRequiredMixin, CreateView):
     model = Habit
     fields = ['name', 'description', 'status']
@@ -474,24 +528,22 @@ class HabitCreateView(LoginRequiredMixin, CreateView):
         if not is_htmx(request):
             return redirect('habits-page')
         return super().get(request, *args, **kwargs)
+
     def form_valid(self, form):
-        habit_count = Habit.objects.filter(user=self.request.user).count()
-        if habit_count >= 12:
-            messages.error(self.request, "You cannot add more than 12 habits.")
-            return redirect('habits-page')
+        # Stop user from adding more than 12 habits
+        if Habit.objects.filter(user=self.request.user).count() >= MAX_HABITS:
+            form.add_error(None, f"You cannot add more than {MAX_HABITS} habits.")
+            return self.form_invalid(form)
         form.instance.user = self.request.user
         response = super().form_valid(form)
         if is_htmx(self.request):
-            hx_response = HttpResponse('<div id="habitModalContent" hx-swap-oob="innerHTML"></div>')
-            hx_response['HX-Trigger'] = 'refresh-habits'
-            return hx_response
+            return close_modal_response('habitModalContent', trigger='refresh-habits')
         return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['view'] = self.request.GET.get('view') or 'weekly'
         context['week_change'] = self.request.GET.get('week_change') or 0
-        context['day_change'] = self.request.GET.get('day_change') or 0
         context['is_htmx'] = is_htmx(self.request)
         return context
 
@@ -510,20 +562,15 @@ class HabitUpdateView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         if is_htmx(self.request):
-            hx_response = HttpResponse('<div id="habitModalContent" hx-swap-oob="innerHTML"></div>')
-            hx_response['HX-Trigger'] = 'refresh-habits'
-            return hx_response
+            return close_modal_response('habitModalContent', trigger='refresh-habits')
         return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['view'] = self.request.GET.get('view') or 'weekly'
         context['week_change'] = self.request.GET.get('week_change') or 0
-        context['day_change'] = self.request.GET.get('day_change') or 0
         context['is_htmx'] = is_htmx(self.request)
         return context
-
-
 
 @login_required
 def delete_habit(request, habit_id):
@@ -531,9 +578,7 @@ def delete_habit(request, habit_id):
     if request.method == "POST":
         habit.delete()
         if is_htmx(request):
-            hx_response = HttpResponse('<div id="habitModalContent" hx-swap-oob="innerHTML"></div>')
-            hx_response['HX-Trigger'] = 'refresh-habits'
-            return hx_response
+            return close_modal_response('habitModalContent', trigger='refresh-habits')
     return redirect("habits-page")
 
 
@@ -546,20 +591,18 @@ def all_habit_list_view(request):
         'habit_list': all_habits,
         'view': request.GET.get('view') or request.POST.get('view') or 'weekly',
         'week_change': request.GET.get('week_change') or request.POST.get('week_change') or 0,
-        'day_change': request.GET.get('day_change') or request.POST.get('day_change') or 0,
         'is_htmx': True,
     }
     return render(request, 'habits_all.html', context)
 
+# Checks the "done" status via ajax so the page wont reload
 @login_required
 def toggle_habit(request, habit_id, date):
     date_obj = datetime.datetime.strptime(date, '%Y-%m-%d').date()
-    if date_obj > timezone.now().date():
+    if date_obj > timezone.localdate():
         return JsonResponse({'status': 'error', 'message': 'Future dates are not allowed.'}, status=400)
     habit = get_object_or_404(Habit, id=habit_id, user=request.user)
-    log, created = HabitLog.objects.get_or_create(
-        habit=habit,
-        date=date_obj)
-    log.if_done = not log.if_done
+    log, _ = HabitLog.objects.get_or_create(habit=habit, date=date_obj)
+    log.if_done = not log.if_done # flipping
     log.save()
     return JsonResponse({'status': 'success', 'if_done': log.if_done})

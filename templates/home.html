@@ -14,34 +14,33 @@
     <div class="home-layout">
         <div class="home-card">
             <div class="home-grid">
-            <section class="home-col">
-                <h2 class="home-col-title">Habits</h2>
-                <ul class="habit-quick-list">
-                    {% for entry in active_habits %}
-                    <li class="habit-quick-item">
-                        <label>
-                            <input
-                                type="checkbox"
-                                class="habit-quick-check"
-                                data-habit-id="{{ entry.habit.id }}"
-                                {% if entry.is_done %}checked{% endif %}>
-                            <span>{{ entry.habit.name }}</span>
-                        </label>
-                    </li>
-                    {% empty %}
-                    <li class="habit-empty">No active habits yet.</li>
-                    {% endfor %}
-                </ul>
-            </section>
+                <section class="home-col">
+                    <h2 class="home-col-title">Habits</h2>
+                    <ul class="habit-quick-list">
+                        {% for entry in active_habits %}
+                        <li class="habit-quick-item">
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    class="habit-quick-check"
+                                    data-habit-id="{{ entry.habit.id }}"
+                                    {% if entry.is_done %}checked{% endif %}>
+                                <span>{{ entry.habit.name }}</span>
+                            </label>
+                        </li>
+                        {% empty %}
+                        <li class="habit-empty">No active habits yet.</li>
+                        {% endfor %}
+                    </ul>
+                </section>
 
-            <section class="home-col">
-                <h2 class="home-col-title">Sleep</h2>
-                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css">
-                <form id="quickSleepForm" class="sleep-quick-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="is_quick" value="true">
-                    <input type="hidden" id="quick_bedtime" name="bedtime" value="{{ sleep_log.bedtime|date:'H:i' }}">
-                    <input type="hidden" id="quick_waketime" name="waketime" value="{{ sleep_log.waketime|date:'H:i' }}">
+                <section class="home-col">
+                    <h2 class="home-col-title">Sleep</h2>
+                    <form id="quickSleepForm" class="sleep-quick-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="is_quick" value="true">
+                        <input type="hidden" id="quick_bedtime" name="bedtime" value="{{ sleep_log.bedtime|date:'H:i' }}">
+                        <input type="hidden" id="quick_waketime" name="waketime" value="{{ sleep_log.waketime|date:'H:i' }}">
 
                     <div class="sleep-quick-row">
                         <div class="sleep-quick-header">
@@ -76,22 +75,22 @@
     </div>
 
         <div class="home-actions" aria-label="Quick actions">
-        <a href="{% url 'habits-page' %}" class="home-action">
-            <span class="home-action-icon">H</span>
-            <span class="home-action-text">Habits</span>
-            <span class="home-action-arrow">&gt;</span>
-        </a>
-        <a href="{% url 'sleep-page' %}" class="home-action">
-            <span class="home-action-icon">S</span>
-            <span class="home-action-text">Sleep</span>
-            <span class="home-action-arrow">&gt;</span>
-        </a>
-        <a href="{% url 'home' %}" class="home-action">
-            <span class="home-action-icon">A</span>
-            <span class="home-action-text">Analytics</span>
-            <span class="home-action-arrow">&gt;</span>
-        </a>
-    </div>
+            <a href="{% url 'habits-page' %}" class="home-action">
+                <span class="home-action-icon">H</span>
+                <span class="home-action-text">Habits</span>
+                <span class="home-action-arrow">&gt;</span>
+            </a>
+            <a href="{% url 'sleep-page' %}" class="home-action">
+                <span class="home-action-icon">S</span>
+                <span class="home-action-text">Sleep</span>
+                <span class="home-action-arrow">&gt;</span>
+            </a>
+            <a href="{% url 'home' %}" class="home-action">
+                <span class="home-action-icon">A</span>
+                <span class="home-action-text">Analytics</span>
+                <span class="home-action-arrow">&gt;</span>
+            </a>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>

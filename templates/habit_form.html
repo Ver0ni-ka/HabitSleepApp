@@ -5,13 +5,12 @@
 <div class="modal-body">
     <form method="post"
           class="habit-modal-form"
-          hx-post="{{ request.path }}?view={{ view }}&week_change={{ week_change }}&day_change={{ day_change }}"
+          hx-post="{{ request.path }}?view={{ view }}&week_change={{ week_change }}"
           hx-target="#habitModalContent"
           hx-swap="innerHTML">
         {% csrf_token %}
         <input type="hidden" name="view" value="{{ view }}">
         <input type="hidden" name="week_change" value="{{ week_change }}">
-        <input type="hidden" name="day_change" value="{{ day_change }}">
         <div class="modal-field">
             <label>Name:</label>
             {{ form.name }}
@@ -34,14 +33,13 @@
     {% if object %}
         <form method="post"
               class="habit-delete-form"
-              hx-post="{% url 'habit-delete' object.id %}?view={{ view }}&week_change={{ week_change }}&day_change={{ day_change }}"
+              hx-post="{% url 'habit-delete' object.id %}?view={{ view }}&week_change={{ week_change }}"
               hx-target="#habitModalContent"
               hx-swap="innerHTML"
-              hx-confirm="Delete this habit and all its data?">
+              onsubmit="return confirm('Delete this habit and all its data?')">
             {% csrf_token %}
             <input type="hidden" name="view" value="{{ view }}">
             <input type="hidden" name="week_change" value="{{ week_change }}">
-            <input type="hidden" name="day_change" value="{{ day_change }}">
             <button type="submit" class="habit-btn danger">Delete</button>
         </form>
     {% endif %}

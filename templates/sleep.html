@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 {% block content %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css">
 
 <div class="sleep-page">
     <div class="sleep-content-shell">
@@ -73,16 +72,14 @@
                                             <span>{{ row.avg_duration }}</span>
                                             <span>{{ row.avg_quality }}</span>
                                         </div>
-                                    {% else %}
-                                        {% if not row.is_future %}
-                                            {% if row.has_log %}
-                                                <div class="sleep-segment"
-                                                     style="left: {{ row.left_pct }}%; width: {{ row.width_pct }}%;">
-                                                    <span class="sleep-segment-duration">{{ row.duration }}</span>
-                                                </div>
-                                            {% else %}
-                                                <span class="sleep-empty-state">No sleep log</span>
-                                            {% endif %}
+                                    {% elif not row.is_future %}
+                                        {% if row.has_log %}
+                                            <div class="sleep-segment"
+                                                 style="left: {{ row.left_pct }}%; width: {{ row.width_pct }}%;">
+                                                <span class="sleep-segment-duration">{{ row.duration }}</span>
+                                            </div>
+                                        {% else %}
+                                            <span class="sleep-empty-state">No sleep log</span>
                                         {% endif %}
                                     {% endif %}
                                 </div>
@@ -98,15 +95,13 @@
             <div class="sleep-editor-header">
                 <div>
                     <div class="sleep-editor-title">Sleep</div>
-                    <div class="sleep-editor-subtitle">
-                        Editing: {{ selected_label }}
-                    </div>
+                    <div class="sleep-editor-subtitle">Editing: {{ selected_label }}</div>
                 </div>
             </div>
 
             <form id="sleepPageForm" class="sleep-quick-form sleep-page-form">
                 {% csrf_token %}
-                <input type="hidden" id="page_selected" name="selected" value="{{ sleep_log.id }}">
+                <input type="hidden" id="page_selected_date" name="selected_date" value="{{ selected_date_iso }}">
                 <input type="hidden" id="page_week_change" name="week_change" value="{{ week_change }}">
                 <input type="hidden" id="page_bedtime" name="bedtime" value="{{ sleep_log.bedtime|date:'H:i' }}">
                 <input type="hidden" id="page_waketime" name="waketime" value="{{ sleep_log.waketime|date:'H:i' }}">
@@ -136,7 +131,7 @@
                     <textarea id="page_comment" name="comment" rows="3">{{ sleep_log.comment|default_if_none:'' }}</textarea>
                 </div>
 
-                <button type="button" class="sleep-quick-save" id="page_save_btn" onclick="saveSleepPage()" disabled>
+                <button type="button" class="sleep-quick-save" id="page_save_btn" onclick="saveSleepPage()">
                     Save
                 </button>
             </form>
@@ -193,20 +188,6 @@ function updateSleepPageTimeFields(bedStr, wakeStr) {
     updateSleepPageSaveState();
 }
 
-function updateSleepPageSaveState() {
-    const currentBed = pageBedtime.value;
-    const currentWake = pageWaketime.value;
-    const currentQuality = document.getElementById('page_quality').value;
-    const currentComment = document.getElementById('page_comment').value;
-    const isChanged = (
-        currentBed !== initialBedtime ||
-        currentWake !== initialWaketime ||
-        String(currentQuality) !== String(initialQuality) ||
-        currentComment !== initialComment
-    );
-    pageSaveBtn.disabled = !isChanged;
-}
-
 function toggleSleepPageMode() {
     pageManualWrap.classList.toggle('active');
     const toggleBtn = document.querySelector('.sleep-editor-card .sleep-quick-toggle');
@@ -251,6 +232,20 @@ pageSlider.noUiSlider.on('update', function (values) {
     const wTime = minutesToTime(Math.round(values[1]));
     updateSleepPageTimeFields(bTime, wTime);
 });
+
+function updateSleepPageSaveState() {
+    const currentBed = pageBedtime.value;
+    const currentWake = pageWaketime.value;
+    const currentQuality = document.getElementById('page_quality').value;
+    const currentComment = document.getElementById('page_comment').value;
+    const isChanged = (
+        currentBed !== initialBedtime ||
+        currentWake !== initialWaketime ||
+        String(currentQuality) !== String(initialQuality) ||
+        currentComment !== initialComment
+    );
+    pageSaveBtn.disabled = !isChanged;
+}
 
 function saveSleepPage() {
     const formData = new FormData(document.getElementById('sleepPageForm'));

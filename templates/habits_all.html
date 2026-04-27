@@ -16,7 +16,7 @@
                     <div class="habit-list-actions">
                         <button type="button"
                                 class="habit-btn"
-                                hx-get="{% url 'habit-edit' habit.id %}?view={{ view }}&week_change={{ week_change }}&day_change={{ day_change }}"
+                                hx-get="{% url 'habit-edit' habit.id %}?view={{ view }}&week_change={{ week_change }}"
                                 hx-target="#habitModalContent"
                                 hx-swap="innerHTML">
                             Edit

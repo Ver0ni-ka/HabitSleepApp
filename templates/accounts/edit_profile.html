@@ -1,12 +1,201 @@
 {% extends 'base.html' %}
 
+{% block title %}Edit Profile{% endblock %}
 {% block content %}
-<h2>Edit profile</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Save</button>
-</form>
-<br>
-<a href="{% url 'change-password' %}">Change password</a>
+    <div class="habit-page account-page">
+        <div class="habit-content-shell account-shell">
+            <div class="home-card account-card">
+                <div class="account-header">
+                    <h2 class="home-col-title account-title">Edit profile</h2>
+                    <p class="account-subtitle">{{ profile_email }}</p>
+                </div>
+
+                {% if form.non_field_errors %}
+                    <div class="account-alert">
+                        {% for err in form.non_field_errors %}
+                            <div>{{ err }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" action="{{ request.path }}" class="habit-modal-form account-form">
+                    {% csrf_token %}
+                    {% for hidden in form.hidden_fields %}
+                        {{ hidden }}
+                    {% endfor %}
+
+                    {% for field in form.visible_fields %}
+                        <div class="modal-field {% if field.field.widget.input_type == 'checkbox' %}modal-field-checkbox{% endif %}">
+                            {% if field.field.widget.input_type == 'checkbox' %}
+                                <label class="modal-check-row" for="{{ field.id_for_label }}">
+                                    {{ field }}
+                                    <span>{{ field.label }}</span>
+                                </label>
+                            {% else %}
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                            {% endif %}
+
+                            {% if field.errors %}
+                                <div class="account-field-errors">
+                                    {% for err in field.errors %}
+                                        <div>{{ err }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <div class="modal-actions">
+                        <button type="submit" class="habit-btn">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="account-inline-actions">
+        {% if can_change_password %}
+            <button type="button"
+                    class="habit-btn"
+                    hx-get="{{ change_password_url }}"
+                    hx-target="#accountModalContent"
+                    hx-select="#changePasswordContent"
+                    hx-swap="innerHTML">
+                Change password
+            </button>
+        {% endif %}
+        <button type="button"
+                class="habit-btn danger"
+                hx-get="{{ delete_account_url }}"
+                hx-target="#accountModalContent"
+                hx-select="#deleteAccountContent"
+                hx-swap="innerHTML">
+            Delete account
+        </button>
+    </div>
+
+    {% if not can_change_password %}
+        <div class="account-inline-note">
+            Password changes are unavailable for Google sign-in accounts.
+        </div>
+    {% endif %}
+
+    <div id="accountModal" class="modal hidden" aria-hidden="true">
+        <div class="modal-window">
+            <div id="accountModalContent"></div>
+        </div>
+    </div>
+
+    <script>
+    function isSmallScreenAccountModal() {
+        return window.matchMedia('(max-width: 700px)').matches;
+    }
+
+    function resetAccountModalWindowPosition() {
+        const modalWindow = document.querySelector('#accountModal .modal-window');
+        if (!modalWindow) {
+            return;
+        }
+
+        modalWindow.style.removeProperty('left');
+        modalWindow.style.removeProperty('top');
+        modalWindow.style.removeProperty('transform');
+    }
+
+    function openAccountModal() {
+        const modal = document.getElementById('accountModal');
+        resetAccountModalWindowPosition();
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeAccountModal() {
+        const modal = document.getElementById('accountModal');
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        resetAccountModalWindowPosition();
+        const content = document.getElementById('accountModalContent');
+        content.innerHTML = '';
+    }
+
+    function bindAccountModalDrag() {
+        const modalWindow = document.querySelector('#accountModal .modal-window');
+        if (!modalWindow || modalWindow.dataset.dragBound === 'true') {
+            return;
+        }
+        const handle = modalWindow.querySelector('.drag-handle');
+        if (!handle) {
+            return;
+        }
+
+        if (isSmallScreenAccountModal()) {
+            modalWindow.dataset.dragBound = 'true';
+            return;
+        }
+
+        modalWindow.dataset.dragBound = 'true';
+
+        let startX = 0;
+        let startY = 0;
+        let startLeft = 0;
+        let startTop = 0;
+
+        const onMouseMove = (event) => {
+            const dx = event.clientX - startX;
+            const dy = event.clientY - startY;
+            modalWindow.style.left = `${startLeft + dx}px`;
+            modalWindow.style.top = `${startTop + dy}px`;
+        };
+
+        const onMouseUp = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        handle.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+            const rect = modalWindow.getBoundingClientRect();
+            startX = event.clientX;
+            startY = event.clientY;
+            startLeft = rect.left;
+            startTop = rect.top;
+            modalWindow.style.transform = 'translate(0, 0)';
+            modalWindow.style.left = `${startLeft}px`;
+            modalWindow.style.top = `${startTop}px`;
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    }
+
+    document.getElementById('accountModal').addEventListener('click', (event) => {
+        if (event.target.id === 'accountModal') {
+            closeAccountModal();
+        }
+    });
+
+    document.body.addEventListener('htmx:afterSwap', (event) => {
+        if (event.target.id === 'accountModalContent') {
+            const content = event.target.innerHTML.trim();
+            if (content.length > 0) {
+                const modalWindow = document.querySelector('#accountModal .modal-window');
+                if (modalWindow) {
+                    modalWindow.dataset.dragBound = 'false';
+                }
+                openAccountModal();
+                bindAccountModalDrag();
+            }
+        }
+    });
+
+    document.body.addEventListener('password-changed', () => {
+        closeAccountModal();
+    });
+
+    window.addEventListener('resize', () => {
+        if (isSmallScreenAccountModal()) {
+            resetAccountModalWindowPosition();
+        }
+    });
+    </script>
 {% endblock %}

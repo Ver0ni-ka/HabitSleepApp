@@ -6,23 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Tracker{% endblock %}</title>
 
-    <link rel="stylesheet" href="{% static 'styles/styles.css' %}?v=2.2">
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <script src="https://unpkg.com/feather-icons"></script>
+    <link rel="stylesheet" href="{% static 'styles/styles.css' %}?v=2.8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css">
+    <script src="https://unpkg.com/htmx.org@2.0.10"></script>
 </head>
 <body>
 
 {% if user.is_authenticated %}
 <header class="header">
-    <button class="menu-btn" onclick="toggleSidebar()">
-        ☰
+    <button class="menu-btn" type="button" onclick="toggleSidebar()" aria-label="Open menu">
+        &#9776;
     </button>
 </header>
 
 <div id="sidebar" class="sidebar">
     <div class="sidebar-header">
         <span></span>
-        <button onclick="toggleSidebar()">✕</button>
+        <button type="button" onclick="toggleSidebar()" aria-label="Close menu">✕</button>
     </div>
 
     <nav class="nav">
@@ -33,7 +33,7 @@
         <a href="{% url 'edit-profile' %}" class="nav-item">👤 Profile</a>
         <form method="post" action="{% url 'logout' %}" class="nav-item logout-link">
             {% csrf_token %}
-            <a href="#" onclick="this.closest('form').submit(); return false;">Logout</a>
+            <button type="submit">Logout</button>
         </form>
     </nav>
 </div>
@@ -51,21 +51,15 @@
 {% endif %}
 
 <main class="content">
-    {% block content %}
-
-    {% endblock %}
+    {% block content %}{% endblock %}
 </main>
-<footer class="footer">
-
-</footer>
+<footer class="footer"></footer>
 
 <script>
     function toggleSidebar() {
         document.getElementById("sidebar").classList.toggle("active");
         document.getElementById("overlay").classList.toggle("active");
     }
-
-    feather.replace();
 </script>
 
 </body>

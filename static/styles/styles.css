@@ -8,11 +8,22 @@
     --text-muted: #6b7280;
     --bg-color: #ffffff;
     --bg-alt: #f8fbff;
+    --bg-light: #fdfefe;
+    --bg-modal-header: #edf5ff;
     --border-color: #b7d8ff;
     --border-light: #9ec9ff;
+    --border-modal: #cfe2fb;
+    --border-list: #d6e7fb;
     --error-color: #7a1c1c;
     --error-bg: #ffdede;
     --success-color: #2b3a55;
+    --overlay-color: rgba(17, 24, 39, 0.35);
+    --shadow-light: rgba(43, 58, 85, 0.06);
+    --shadow-medium: rgba(43, 58, 85, 0.08);
+    --shadow-hover: rgba(43, 58, 85, 0.14);
+    --checkbox-accent: #6fb4ff;
+    --checkbox-bg: #f4f8fe;
+    --link-hover: #d7e8ff;
 }
 
 body {
@@ -95,7 +106,7 @@ body {
 }
 
 .nav-item:hover {
-    background: #d7e8ff;
+    background: var(--link-hover);
 }
 
 .nav-item.logout-link {
@@ -107,15 +118,20 @@ body {
     background: transparent;
 }
 
-.nav-item.logout-link a {
+.nav-item.logout-link button {
     display: flex;
     justify-content: center;
+    align-items: center;
     width: 100%;
+    background: transparent;
+    border: 0;
     color: var(--text-muted);
     text-decoration: underline;
+    cursor: pointer;
+    font: inherit;
 }
 
-.nav-item.logout-link:hover a {
+.nav-item.logout-link:hover button {
     color: var(--text-color);
 }
 
@@ -190,7 +206,7 @@ body {
 }
 
 .home-action:hover {
-    background: #d7e8ff;
+    background: var(--link-hover);
 }
 
 .home-action-icon {
@@ -485,6 +501,160 @@ body {
     text-decoration: underline;
 }
 
+.account-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.account-shell {
+    width: min(94%, 620px);
+}
+
+.account-card {
+    display: grid;
+    gap: 18px;
+    max-width: 100%;
+}
+
+.account-header {
+    display: grid;
+    gap: 6px;
+}
+
+.account-title {
+    margin: 0;
+    font-size: 26px;
+}
+
+.account-subtitle {
+    margin: 0;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.account-alert {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--error-bg);
+    color: var(--error-color);
+    display: grid;
+    gap: 4px;
+}
+
+.account-field-errors {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--error-bg);
+    color: var(--error-color);
+    display: grid;
+    gap: 4px;
+    font-size: 13px;
+}
+
+.account-divider {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.account-provider-btn {
+    width: 100%;
+}
+
+.account-footer {
+    margin: 0;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.account-footer a {
+    color: var(--secondary-color);
+}
+
+.account-inline-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.account-inline-actions .habit-btn {
+    min-width: 220px;
+}
+
+.account-inline-note {
+    margin-top: 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.account-danger-block {
+    display: grid;
+    gap: 6px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--error-bg);
+    color: var(--error-color);
+}
+
+.account-danger-title {
+    font-weight: 700;
+}
+
+.account-danger-text {
+    line-height: 1.5;
+}
+
+.account-form .modal-field input:not([type="checkbox"]),
+.account-form .modal-field textarea,
+.account-form .modal-field select {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.account-form .modal-field input:not([type="checkbox"]):focus,
+.account-form .modal-field textarea:focus,
+.account-form .modal-field select:focus {
+    border-color: var(--border-light);
+    background: var(--bg-color);
+}
+
+.account-form .modal-check-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    background: transparent;
+    padding: 0;
+    gap: 12px;
+}
+
+.account-form .modal-check-row .habit-quick-check {
+    flex: 0 0 auto;
+}
+
+.modal-field select {
+    padding: 12px 14px;
+    border: 1px solid var(--border-modal);
+    border-radius: 14px;
+    background: var(--bg-light);
+    color: var(--secondary-color);
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.modal-field select:focus {
+    outline: none;
+    border-color: var(--border-light);
+    box-shadow: 0 0 0 3px rgba(183, 216, 255, 0.35);
+    background: var(--bg-color);
+}
+
 .sleep-page, .habit-page {
     background: var(--bg-alt);
     padding: 28px 20px 36px;
@@ -575,8 +745,95 @@ body {
     text-align: center;
 }
 
+.desktop-only {
+    display: block;
+}
+
 .mobile-only {
     display: none;
+}
+
+@media (max-width: 700px) {
+    .desktop-only {
+        display: none;
+    }
+    .mobile-only {
+        display: block;
+    }
+
+    .habit-mobile-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+    }
+
+    .habit-card {
+        background: var(--bg-color);
+        border-radius: 16px;
+        padding: 12px;
+        box-shadow: 0 2px 8px var(--shadow-light);
+        border: 1px solid var(--border-list);
+    }
+
+    .habit-card.today {
+        border: 2px solid var(--primary-dark);
+        background: var(--primary-lighter);
+    }
+
+    .habit-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        padding: 4px 8px;
+    }
+
+    .habit-card-title {
+        font-weight: 800;
+        font-size: 18px;
+        color: var(--secondary-color);
+    }
+
+    .habit-card.collapsed .habit-card-body {
+        display: none;
+    }
+
+    .habit-card.collapsed .dropdown-arrow {
+        transform: rotate(-90deg);
+    }
+
+    .habit-card-body {
+        margin-top: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .habit-mobile-cell {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--bg-alt);
+        padding: 12px 16px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .habit-mobile-cell.done {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .habit-mobile-cell.future {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    .m-habit-name {
+        font-weight: 600;
+    }
 }
 
 .habit-week-nav button {
@@ -720,13 +977,13 @@ body {
     left: 0;
     background: var(--bg-color);
     z-index: 10;
-    box-shadow: 2px 0 4px rgba(43, 58, 85, 0.04);
+    box-shadow: 2px 0 4px var(--shadow-light);
 }
 
 .habit-table th.habit-name {
     background: var(--primary-color);
     z-index: 11;
-    box-shadow: 2px 0 4px rgba(43, 58, 85, 0.08);
+    box-shadow: 2px 0 4px var(--shadow-medium);
 }
 
 .habit-table td {
@@ -758,13 +1015,13 @@ body {
 }
 
 .habit-table tbody tr td.today {
-    box-shadow: inset 0 0 0 2px var(--primary-dark) !important;
-    background-color: var(--primary-lighter) !important;
+    box-shadow: inset 0 0 0 2px var(--primary-dark);
+    background-color: var(--primary-lighter);
 }
 
 .habit-table tbody tr td.done {
-    background-color: var(--primary-color) !important;
-    color: #ffffff !important;
+    background-color: var(--primary-color);
+    color: #ffffff;
 }
 
 .habit-table td.future {
@@ -801,7 +1058,7 @@ body {
 .modal {
     position: fixed;
     inset: 0;
-    background: rgba(17, 24, 39, 0.35);
+    background: var(--overlay-color);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -819,10 +1076,10 @@ body {
     max-width: 90vw;
     max-height: calc(100vh - 32px);
     overflow: hidden;
-    background: #ffffff;
-    border: 1px solid #d6e7fb;
+    background: var(--bg-color);
+    border: 1px solid var(--border-list);
     border-radius: 22px;
-    box-shadow: 0 18px 40px rgba(43, 58, 85, 0.14);
+    box-shadow: 0 18px 40px var(--shadow-hover);
     padding: 14px 16px 18px;
     top: 50%;
     left: 50%;
@@ -931,9 +1188,9 @@ body {
         padding-left: 14px;
         position: sticky;
         left: 0;
-        background: #ffffff;
+        background: var(--bg-color);
         z-index: 10;
-        box-shadow: 2px 0 4px rgba(43, 58, 85, 0.04);
+        box-shadow: 2px 0 4px var(--shadow-light);
     }
 
     .habit-content-shell-monthly .habit-table {
@@ -976,10 +1233,6 @@ body {
         width: auto;
     }
 
-    .habit-content-shell-weekly .habit-table {
-        min-width: 680px;
-    }
-
     .habit-content-shell-daily .habit-table {
         min-width: 0;
         width: 100%;
@@ -998,7 +1251,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #edf5ff;
+    background: var(--bg-modal-header);
     border-radius: 18px;
     padding: 12px 14px;
     margin: 0 0 16px 0;
@@ -1014,7 +1267,7 @@ body {
 .modal-title {
     font-size: 15px;
     font-weight: 700;
-    color: #2b3a55;
+    color: var(--secondary-color);
 }
 
 .modal-close {
@@ -1023,7 +1276,7 @@ body {
     font-size: 22px;
     line-height: 1;
     cursor: pointer;
-    color: #2b3a55;
+    color: var(--secondary-color);
 }
 
 .modal-body {
@@ -1044,17 +1297,17 @@ body {
 .modal-field label {
     font-size: 13px;
     font-weight: 700;
-    color: #42526f;
+    color: var(--secondary-color);
     letter-spacing: 0.01em;
 }
 
-.modal-field input,
+.modal-field input:not([type="checkbox"]),
 .modal-field textarea {
     padding: 12px 14px;
-    border: 1px solid #cfe2fb;
+    border: 1px solid var(--border-modal);
     border-radius: 14px;
-    background: #fdfefe;
-    color: #2b3a55;
+    background: var(--bg-light);
+    color: var(--secondary-color);
     width: 100%;
     box-sizing: border-box;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
@@ -1065,12 +1318,12 @@ body {
     resize: vertical;
 }
 
-.modal-field input:focus,
+.modal-field input:not([type="checkbox"]):focus,
 .modal-field textarea:focus {
     outline: none;
-    border-color: #9ec9ff;
+    border-color: var(--border-light);
     box-shadow: 0 0 0 3px rgba(183, 216, 255, 0.35);
-    background: #ffffff;
+    background: var(--bg-color);
 }
 
 .modal-field-checkbox {
@@ -1083,7 +1336,7 @@ body {
     gap: 10px;
     padding: 10px 12px;
     border-radius: 14px;
-    background: #f4f8fe;
+    background: var(--checkbox-bg);
     width: fit-content;
 }
 
@@ -1091,13 +1344,13 @@ body {
     margin: 0;
     width: 18px;
     height: 18px;
-    accent-color: #6fb4ff;
+    accent-color: var(--checkbox-accent);
 }
 
 .modal-check-row span {
     font-size: 14px;
     font-weight: 600;
-    color: #2b3a55;
+    color: var(--secondary-color);
 }
 
 .modal-actions {
@@ -1121,6 +1374,8 @@ body {
 .habit-list {
     display: grid;
     gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 .habit-list-item {
@@ -1129,9 +1384,9 @@ body {
     align-items: flex-start;
     gap: 12px;
     padding: 10px 12px;
-    border: 1px solid #b7d8ff;
+    border: 1px solid var(--border-color);
     border-radius: 12px;
-    background: #ffffff;
+    background: var(--bg-color);
 }
 
 .habit-list-text {
@@ -1199,11 +1454,6 @@ body {
         gap: 4px;
     }
 
-    .modal-field input,
-    .modal-field textarea {
-        padding: 10px 12px;
-    }
-
     .modal-field textarea {
         min-height: 96px;
     }
@@ -1259,6 +1509,113 @@ body {
     color: var(--secondary-color);
 }
 
+@media (max-width: 500px) {
+    .modal-window {
+        display: flex;
+        flex-direction: column;
+        border-radius: 20px;
+    }
+
+    .modal-header {
+        border-radius: 16px;
+        padding: 10px 12px;
+        margin-bottom: 12px;
+    }
+
+    .modal-body {
+        flex: 1;
+        overflow-y: auto;
+        max-height: calc(100vh - 150px);
+    }
+
+    .modal-actions {
+        margin-top: auto;
+        padding-top: 8px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .habit-list-item {
+        border-radius: 14px;
+        padding: 12px;
+        background: var(--bg-alt);
+        border: none;
+        box-shadow: 0 2px 4px var(--shadow-light);
+    }
+
+    .habit-list-name {
+        font-size: 15px;
+    }
+
+    .habit-list-desc {
+        font-size: 11px;
+        margin-top: 6px;
+    }
+
+    .modal-field input,
+    .modal-field textarea {
+        font-size: 16px;
+    }
+
+    .modal-check-row {
+        padding: 8px 10px;
+        background: var(--primary-lighter);
+        border-radius: 12px;
+    }
+}
+
+@media (max-width: 380px) {
+    .modal-window {
+        max-width: calc(100vw - 16px);
+        border-radius: 18px;
+        padding: 12px;
+    }
+
+    .modal-header {
+        padding: 9px 10px;
+        margin-bottom: 10px;
+    }
+
+    .modal-title {
+        font-size: 14px;
+    }
+
+    .modal-body {
+        gap: 8px;
+    }
+
+    .habit-modal-form {
+        gap: 10px;
+    }
+
+    .modal-field {
+        gap: 3px;
+    }
+
+    .modal-field label {
+        font-size: 12px;
+    }
+
+    .modal-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 6px;
+        margin-top: 8px;
+        padding-top: 8px;
+    }
+
+    .modal-actions .habit-btn {
+        min-height: 44px;
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    .habit-btn {
+        font-size: 14px;
+        padding: 12px 16px;
+    }
+}
+
+
 
 .sleep-content-shell {
     width: min(94%, 1200px);
@@ -1306,7 +1663,7 @@ body {
 .sleep-day-heading {
     width: 140px;
     padding: 0 16px 8px;
-    position: sticky;
+    /**position: sticky;**/
     left: 0;
     z-index: 15;
     background: #f8fbff;
@@ -1356,7 +1713,7 @@ body {
     background: #ffffff;
     border: 1px solid #d6e7fb;
     border-right: none;
-    position: sticky;
+    /**position: sticky;**/
     left: 0;
     z-index: 10;
 }
@@ -1419,7 +1776,7 @@ body {
     min-height: 42px;
     border-radius: 16px;
     background-color: #edf5ff;
-    background-image: 
+    background-image:
         linear-gradient(to right, #cfe2fb 1px, transparent 1px),
         repeating-linear-gradient(
             to right,
@@ -1521,10 +1878,6 @@ body {
         width: 130px;
     }
 
-    .sleep-day-cell {
-        padding: 12px;
-    }
-
     .sleep-row-edit {
         width: 36px;
         height: 36px;
@@ -1553,10 +1906,6 @@ body {
 @media (max-width: 520px) {
     .sleep-page {
         padding: 18px 10px 24px;
-    }
-
-    .sleep-grid {
-        min-width: 700px;
     }
 
     .sleep-editor-card {
@@ -1606,12 +1955,156 @@ body {
     color: #555;
 }
 
-.sleep-yearly-metrics {
-    font-size: 1.1em;
+.m-date {
+    display: none;
 }
 
-@media (max-width: 700px) {
-    .sleep-yearly-header, .sleep-yearly-metrics {
-        font-size: 0.85em;
+.dropdown-arrow {
+    display: none;
+}
+
+@media (max-width: 650px) {
+    html, body {
+        overflow-x: hidden;
+        width: 100%;
     }
+
+    .habit-page {
+        padding: 15px 5px;
+        margin: 0;
+        width: 100%;
+        box-sizing: border-box;
+        display: block;
+    }
+
+    .habit-content-shell,
+    .habit-content-shell-weekly,
+    .habit-content-shell-daily,
+    .habit-content-shell-monthly,
+    .habit-content-shell-yearly {
+        width: 100%;
+        margin: 0 auto;
+        padding: 0;
+    }
+
+    .habit-table thead {
+        display: none;
+    }
+
+    .habit-table-shell {
+        display: block;
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: hidden;
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+    }
+
+    .habit-table-shell::before,
+    .habit-table-shell::after {
+        display: none;
+    }
+
+    .habit-table, .habit-table tbody {
+        display: block;
+        width: 100%;
+        min-width: 0 !important;
+        border-spacing: 0;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    .habit-table tr {
+        display: block;
+        background: #ffffff;
+        border: 1px solid var(--border-list);
+        border-radius: 20px;
+        margin: 0 auto 20px auto;
+        width: 92%;
+        max-width: 400px;
+        padding: 15px;
+        box-sizing: border-box;
+        box-shadow: 0 4px 12px var(--shadow-light);
+        float: none;
+    }
+
+    .habit-table td.habit-name {
+        display: block;
+        position: static;
+        width: 100%;
+        min-width: 0;
+        background: transparent;
+        box-shadow: none;
+        text-align: center;
+        font-size: 18px;
+        font-weight: 800;
+        border-bottom: 1px solid var(--border-list);
+        margin-bottom: 12px;
+        padding: 0 0 10px 0;
+        cursor: pointer;
+    }
+
+    .dropdown-arrow {
+        display: inline-block;
+        margin-left: 8px;
+        transition: transform 0.2s ease;
+    }
+
+    tr.collapsed .dropdown-arrow {
+        transform: rotate(-90deg);
+    }
+
+    .habit-table td.habit-cell {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+
+        width: 100%;
+        min-width: 0;
+        min-height: 48px;
+        background: var(--bg-alt);
+        margin-bottom: 6px;
+        padding: 0 15px;
+        border-radius: 12px;
+        box-sizing: border-box;
+        border: none;
+    }
+
+    tr.collapsed .habit-cell,
+    tr.collapsed .habit-settings-col {
+        display: none;
+    }
+
+    .m-date {
+        display: block;
+        font-size: 14px;
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+
+    .m-status {
+        display: block;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--secondary-color);
+    }
+
+    .habit-settings-col {
+        display: block;
+        text-align: right;
+        padding: 5px 0 0 0;
+        width: 100%;
+    }
+
+    .habit-table td.done {
+        background-color: #e0f0ff;
+        color: var(--secondary-color);
+    }
+}
+
+@media (min-width: 651px) {
+    .m-date { display: none; }
 }

@@ -17,15 +17,9 @@
         </div>
         <div class="habit-header">
             <div class="habit-week-nav">
-                {% if view == 'daily' %}
-                    <a href="?view={{ view }}&day_change={{ day_change|add:"-1" }}">&#8592;</a>
-                {% else %}
-                    <a href="?view={{ view }}&week_change={{ week_change|add:"-1" }}">&#8592;</a>
-                {% endif %}
+                <a href="?view={{ view }}&week_change={{ week_change|add:"-1" }}">&#8592;</a>
                 <span>
-                    {% if view == 'daily' %}
-                        {{ start_date|date:"d.m.Y" }}
-                    {% elif view == 'monthly' %}
+                    {% if view == 'monthly' %}
                         {{ start_date|date:"F Y" }}
                     {% elif view == 'yearly' %}
                         {{ start_date|date:"Y" }}
@@ -33,17 +27,12 @@
                         {{ start_date|date:"d.m.Y" }} - {{ end_date|date:"d.m.Y" }}
                     {% endif %}
                 </span>
-                <span class="mobile-only">Day view</span>
-                {% if view == 'daily' %}
-                    <a href="?view={{ view }}&day_change={{ day_change|add:"1" }}">&#8594;</a>
-                {% else %}
-                    <a href="?view={{ view }}&week_change={{ week_change|add:"1" }}">&#8594;</a>
-                {% endif %}
+                <a href="?view={{ view }}&week_change={{ week_change|add:"1" }}">&#8594;</a>
             </div>
         </div>
 
-        <div class="habit-table-shell habit-table-shell-{{ view }}">
-            <table id="habitTable" class="habit-table {% if view == 'daily' %}daily-view{% endif %}">
+        <div class="habit-table-shell habit-table-shell-{{ view }} desktop-only">
+            <table id="habitTable" class="habit-table ">
                 <thead>
                     <tr>
                         <th class="habit-name">Habit</th>
@@ -61,23 +50,31 @@
                 </thead>
                 <tbody>
                     {% for row in tracker_data %}
-                    <tr>
-                        <td class="habit-name">{{ row.habit.name }}</td>
+                    <tr class="collapsed">
+                        <td class="habit-name">
+                            {{ row.habit.name }}
+                            <span class="mobile-only dropdown-arrow">&#9662;</span>
+                        </td>
                         {% for day in row.history %}
-                            <td id="cell-{{ row.habit.id }}-{{ day.date }}"
+                            <td data-label="{{ day.day_label }}"
+                                id="cell-{{ row.habit.id }}-{{ day.date }}"
                                 class="habit-cell day-col {% if day.is_done %}done{% endif %} {% if day.is_future %}future{% endif %} {% if day.is_today %}today{% endif %} {% if day.is_yearly %}yearly{% endif %}"
                                 {% if not day.is_future and not day.is_yearly %}onclick="toggleHabit('{{ row.habit.id }}', '{{ day.date }}')" {% endif %}>
+                                <span class="m-date">{{ day.day_label }}</span>
+                                <span class="m-status">
+
                                 {% if day.is_yearly %}
                                     {{ day.display }}
                                 {% else %}
                                     {% if day.is_done %}&#10003;{% else %}&mdash;{% endif %}
                                 {% endif %}
+                                </span>
                             </td>
                         {% endfor %}
-                        <td>
+                        <td class="habit-settings-col">
                             <button type="button"
                                     class="habit-edit-btn"
-                                    hx-get="{% url 'habit-edit' row.habit.id %}?view={{ view }}&week_change={{ week_change }}&day_change={{ day_change }}"
+                                    hx-get="{% url 'habit-edit' row.habit.id %}?view={{ view }}&week_change={{ week_change }}"
                                     hx-target="#habitModalContent"
                                     hx-swap="innerHTML">
                                 &#9881;
@@ -91,16 +88,18 @@
 
         <div class="habit-actions-row">
             <div class="habit-actions">
+                {% if can_add_habit %}
                 <button type="button"
                         class="habit-btn"
-                        hx-get="{% url 'habit-add' %}?view={{ view }}&week_change={{ week_change }}&day_change={{ day_change }}"
+                        hx-get="{% url 'habit-add' %}?view={{ view }}&week_change={{ week_change }}"
                         hx-target="#habitModalContent"
                         hx-swap="innerHTML">
                     + Add Habit
                 </button>
+                {% endif %}
                 <button type="button"
                         class="habit-btn"
-                        hx-get="{% url 'habit-list' %}?view={{ view }}&week_change={{ week_change }}&day_change={{ day_change }}"
+                        hx-get="{% url 'habit-list' %}?view={{ view }}&week_change={{ week_change }}"
                         hx-target="#habitModalContent"
                         hx-swap="innerHTML">
                     All Habits
@@ -111,7 +110,7 @@
 </div>
 
 <div id="habitTableRefresh"
-     hx-get="{% url 'habits-page' %}?view={{ view }}&week_change={{ week_change }}&day_change={{ day_change }}"
+     hx-get="{% url 'habits-page' %}?view={{ view }}&week_change={{ week_change }}"
      hx-trigger="refresh-habits from:body"
      hx-target="#habitTable"
      hx-select="#habitTable"
@@ -125,32 +124,54 @@
 </div>
 
 <script>
-function toggleHabit(habitId, date) {
-    fetch(`/habits/toggle/${habitId}/${date}/`)
-        .then(response => response.json())
-        .then(data => {
-            const cell = document.getElementById(`cell-${habitId}-${date}`);
-            if (data.if_done) {
-                cell.classList.add('done');
-                cell.innerText = '\u2713';
-            } else {
-                cell.classList.remove('done');
-                cell.innerText = '\u2014';
-            }
-        });
-}
+document.body.addEventListener('htmx:configRequest', (event) => {
+    const token = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    if (token) {
+        event.detail.headers['X-CSRFToken'] = token;
+    }
+});
 
-function changeWeek(change) {
-    window.location.href = `?week_change=${change}`;
-}
+document.body.addEventListener('click', (event) => {
+    if (event.target.id === 'viewToggle') {
+        const menu = document.getElementById('viewMenu');
+        if (!menu) return;
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+});
 
-document.getElementById('viewToggle').addEventListener('click', () => {
-    const menu = document.getElementById('viewMenu');
-    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+document.addEventListener('click', (e) => {
+    const habitNameCell = e.target.closest('.habit-name');
+    if (habitNameCell && window.innerWidth <= 650) {
+        const row = habitNameCell.closest('tr');
+        if (row) {
+            row.classList.toggle('collapsed');
+        }
+    }
 });
 
 function changeView(view) {
     window.location.href = `?view=${view}`;
+}
+
+function toggleHabit(habitId, date) {
+    fetch(`/habits/toggle/${habitId}/${date}/`)
+        .then(r => r.json())
+        .then(data => {
+            const cell = document.getElementById(`cell-${habitId}-${date}`);
+            const mCell = document.getElementById(`cell-m-${habitId}-${date}`);
+            const icon = data.if_done ? '\u2713' : '\u2014';
+
+            if (cell) {
+                cell.classList.toggle('done', data.if_done);
+                const statusSpan = cell.querySelector('.m-status');
+                if (statusSpan) statusSpan.innerText = icon;
+            }
+            if (mCell) {
+                mCell.classList.toggle('done', data.if_done);
+                const mStatusSpan = mCell.querySelector('.m-status');
+                if (mStatusSpan) mStatusSpan.innerText = icon;
+            }
+        });
 }
 
 function isSmallScreenModal() {
