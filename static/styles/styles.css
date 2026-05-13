@@ -232,6 +232,116 @@ body {
     color: var(--secondary-color);
 }
 
+.reports-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 20px;
+    align-items: stretch;
+}
+
+.reports-chart-panel {
+    grid-column: 1;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 18px;
+    min-height: 520px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+#report-chart-content {
+    min-height: 480px;
+    position: relative;
+}
+
+#report-chart-content canvas {
+    width: 100% !important;
+    height: 480px !important;
+}
+
+.reports-actions {
+    grid-column: 2;
+    display: grid;
+    grid-template-rows: repeat(3, 1fr);
+    gap: 12px;
+    align-self: stretch;
+    min-height: 520px;
+}
+
+.reports-actions .home-action {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    color: var(--secondary-color);
+    font: inherit;
+    cursor: pointer;
+    text-align: left;
+    grid-template-columns: 40px 1fr 20px;
+    min-height: 0;
+    padding: 18px 20px;
+    border-radius: 12px;
+    box-shadow: none;
+}
+
+.reports-actions .home-action-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+}
+
+.reports-actions .home-action-text {
+    font-size: 16px;
+}
+
+.reports-actions .home-action-arrow {
+    font-size: 15px;
+}
+
+.reports-actions .home-action.active {
+    background: var(--primary-light);
+    border-color: var(--primary-dark);
+    box-shadow: inset 4px 0 0 var(--primary-dark);
+}
+
+@media (max-width: 800px) {
+    .reports-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .reports-chart-panel,
+    .reports-actions {
+        grid-column: 1;
+    }
+
+    .reports-chart-panel {
+        min-height: 380px;
+    }
+
+    .reports-actions {
+        min-height: auto;
+        grid-template-rows: none;
+    }
+
+    .reports-actions .home-action {
+        min-height: 72px;
+    }
+
+    #report-chart-content {
+        min-height: 340px;
+    }
+
+    #report-chart-content canvas {
+        height: 340px !important;
+    }
+
+    .home-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .home-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .home-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -477,15 +587,6 @@ body {
     border: none;
 }
 
-@media (max-width: 800px) {
-    .home-layout {
-        grid-template-columns: 1fr;
-    }
-
-    .home-grid {
-        grid-template-columns: 1fr;
-    }
-}
 .auth-links {
     display: flex;
     align-items: center;
@@ -677,10 +778,6 @@ body {
     width: min(94%, 1200px);
 }
 
-.habit-content-shell-daily {
-    width: min(94%, 900px);
-}
-
 .habit-content-shell-monthly,
 .habit-content-shell-yearly {
     width: min(94%, 1400px);
@@ -753,96 +850,9 @@ body {
     display: none;
 }
 
-@media (max-width: 700px) {
-    .desktop-only {
-        display: none;
-    }
-    .mobile-only {
-        display: block;
-    }
-
-    .habit-mobile-cards {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        width: 100%;
-    }
-
-    .habit-card {
-        background: var(--bg-color);
-        border-radius: 16px;
-        padding: 12px;
-        box-shadow: 0 2px 8px var(--shadow-light);
-        border: 1px solid var(--border-list);
-    }
-
-    .habit-card.today {
-        border: 2px solid var(--primary-dark);
-        background: var(--primary-lighter);
-    }
-
-    .habit-card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        cursor: pointer;
-        padding: 4px 8px;
-    }
-
-    .habit-card-title {
-        font-weight: 800;
-        font-size: 18px;
-        color: var(--secondary-color);
-    }
-
-    .habit-card.collapsed .habit-card-body {
-        display: none;
-    }
-
-    .habit-card.collapsed .dropdown-arrow {
-        transform: rotate(-90deg);
-    }
-
-    .habit-card-body {
-        margin-top: 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .habit-mobile-cell {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: var(--bg-alt);
-        padding: 12px 16px;
-        border-radius: 12px;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-
-    .habit-mobile-cell.done {
-        background: var(--primary-color);
-        color: white;
-    }
-
-    .habit-mobile-cell.future {
-        opacity: 0.5;
-        pointer-events: none;
-    }
-
-    .m-habit-name {
-        font-weight: 600;
-    }
-}
-
-.habit-week-nav button {
-    background: var(--primary-lighter);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 6px 10px;
-    cursor: pointer;
-    font-size: 16px;
+.m-date,
+.dropdown-arrow {
+    display: none;
 }
 
 .habit-actions {
@@ -856,7 +866,7 @@ body {
     min-width: 164px;
 }
 
-.btn-primary, .habit-btn, .sleep-quick-save {
+.habit-btn, .sleep-quick-save {
     background: var(--primary-lighter);
     border: none;
     border-radius: 16px;
@@ -874,12 +884,12 @@ body {
     transition: background 0.2s ease, transform 0.2s ease;
 }
 
-.btn-primary:hover, .habit-btn:hover, .sleep-quick-save:hover {
+.habit-btn:hover, .sleep-quick-save:hover {
     background: var(--primary-light);
     transform: translateY(-1px);
 }
 
-.btn-primary:disabled, .sleep-quick-save:disabled {
+.sleep-quick-save:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
@@ -1087,6 +1097,14 @@ body {
 }
 
 @media (max-width: 700px) {
+    .desktop-only {
+        display: none;
+    }
+
+    .mobile-only {
+        display: block;
+    }
+
     .habit-topbar {
         margin-bottom: 12px;
     }
@@ -1153,7 +1171,6 @@ body {
 
     .habit-content-shell,
     .habit-content-shell-weekly,
-    .habit-content-shell-daily,
     .habit-content-shell-monthly,
     .habit-content-shell-yearly {
         width: 100%;
@@ -1214,9 +1231,142 @@ body {
         transform: none;
     }
 
-    .modal-body {
-        overflow-y: auto;
-        max-height: calc(100vh - 120px);
+    html, body {
+        overflow-x: hidden;
+        width: 100%;
+    }
+
+    .habit-page {
+        padding: 15px 5px;
+        margin: 0;
+        width: 100%;
+        box-sizing: border-box;
+        display: block;
+    }
+
+    .habit-content-shell,
+    .habit-content-shell-weekly,
+    .habit-content-shell-monthly,
+    .habit-content-shell-yearly {
+        width: 100%;
+        margin: 0 auto;
+        padding: 0;
+    }
+
+    .habit-table thead {
+        display: none;
+    }
+
+    .habit-table-shell {
+        display: block;
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: hidden;
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+    }
+
+    .habit-table-shell::before,
+    .habit-table-shell::after {
+        display: none;
+    }
+
+    .habit-table, .habit-table tbody {
+        display: block;
+        width: 100%;
+        min-width: 0 !important;
+        border-spacing: 0;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    .habit-table tr {
+        display: block;
+        background: #ffffff;
+        border: 1px solid var(--border-list);
+        border-radius: 20px;
+        margin: 0 auto 20px auto;
+        width: 92%;
+        max-width: 400px;
+        padding: 15px;
+        box-sizing: border-box;
+        box-shadow: 0 4px 12px var(--shadow-light);
+        float: none;
+    }
+
+    .habit-table td.habit-name {
+        display: block;
+        position: static;
+        width: 100%;
+        min-width: 0;
+        background: transparent;
+        box-shadow: none;
+        text-align: center;
+        font-size: 18px;
+        font-weight: 800;
+        border-bottom: 1px solid var(--border-list);
+        margin-bottom: 12px;
+        padding: 0 0 10px 0;
+        cursor: pointer;
+    }
+
+    .dropdown-arrow {
+        display: inline-block;
+        margin-left: 8px;
+        transition: transform 0.2s ease;
+    }
+
+    tr.collapsed .dropdown-arrow {
+        transform: rotate(-90deg);
+    }
+
+    .habit-table td.habit-cell {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        min-width: 0;
+        min-height: 48px;
+        background: var(--bg-alt);
+        margin-bottom: 6px;
+        padding: 0 15px;
+        border-radius: 12px;
+        box-sizing: border-box;
+        border: none;
+    }
+
+    tr.collapsed .habit-cell,
+    tr.collapsed .habit-settings-col {
+        display: none;
+    }
+
+    .m-date {
+        display: block;
+        font-size: 14px;
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+
+    .m-status {
+        display: block;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--secondary-color);
+    }
+
+    .habit-settings-col {
+        display: block;
+        text-align: right;
+        padding: 5px 0 0 0;
+        width: 100%;
+    }
+
+    .habit-table td.done {
+        background-color: #e0f0ff;
+        color: var(--secondary-color);
     }
 }
 
@@ -1231,11 +1381,6 @@ body {
 
     .habit-table {
         width: auto;
-    }
-
-    .habit-content-shell-daily .habit-table {
-        min-width: 0;
-        width: 100%;
     }
 
     .habit-content-shell-monthly .habit-table {
@@ -1256,12 +1401,6 @@ body {
     padding: 12px 14px;
     margin: 0 0 16px 0;
     cursor: move;
-}
-
-@media (max-width: 700px) {
-    .modal-header {
-        cursor: default;
-    }
 }
 
 .modal-title {
@@ -1413,18 +1552,23 @@ body {
 .view-menu {
     display: none;
     position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 40;
     background: var(--bg-color);
-    border: none;
+    border: 1px solid var(--border-list);
     border-radius: 16px;
     list-style: none;
-    padding: 8px 0;
+    padding: 8px;
     margin: 0;
-    min-width: 120px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    min-width: 150px;
+    box-shadow: 0 12px 28px var(--shadow-medium);
 }
 
 @media (max-width: 520px) {
     .modal-window {
+        display: flex;
+        flex-direction: column;
         inset: 8px;
         max-height: calc(100vh - 16px);
         padding: 8px;
@@ -1432,8 +1576,9 @@ body {
     }
 
     .modal-header {
-        margin-bottom: 10px;
-        padding: 9px 12px;
+        border-radius: 16px;
+        padding: 10px 12px;
+        margin-bottom: 12px;
     }
 
     .modal-title {
@@ -1441,9 +1586,10 @@ body {
     }
 
     .modal-body {
+        flex: 1;
         gap: 10px;
-        overflow-y: visible;
-        max-height: none;
+        overflow-y: auto;
+        max-height: calc(100vh - 150px);
     }
 
     .habit-modal-form {
@@ -1462,12 +1608,17 @@ body {
         width: 100%;
         justify-content: flex-start;
         padding: 8px 10px;
+        background: var(--primary-lighter);
+        border-radius: 12px;
     }
 
     .modal-actions {
         display: grid;
         grid-template-columns: 1fr;
         gap: 8px;
+        margin-top: auto;
+        padding-top: 8px;
+        border-top: 1px solid var(--border-color);
     }
 
     .modal-actions .habit-btn,
@@ -1485,61 +1636,15 @@ body {
     .habit-list-item {
         flex-direction: column;
         gap: 8px;
-        padding: 10px;
-    }
-
-    .habit-list-actions {
-        width: 100%;
-    }
-}
-
-.habit-view-dropdown {
-    position: relative;
-    z-index: 20;
-}
-
-.view-menu li {
-    padding: 8px 16px;
-    cursor: pointer;
-    color: var(--secondary-color);
-}
-
-.view-menu li:hover {
-    background: var(--primary-lighter);
-    color: var(--secondary-color);
-}
-
-@media (max-width: 500px) {
-    .modal-window {
-        display: flex;
-        flex-direction: column;
-        border-radius: 20px;
-    }
-
-    .modal-header {
-        border-radius: 16px;
-        padding: 10px 12px;
-        margin-bottom: 12px;
-    }
-
-    .modal-body {
-        flex: 1;
-        overflow-y: auto;
-        max-height: calc(100vh - 150px);
-    }
-
-    .modal-actions {
-        margin-top: auto;
-        padding-top: 8px;
-        border-top: 1px solid var(--border-color);
-    }
-
-    .habit-list-item {
         border-radius: 14px;
         padding: 12px;
         background: var(--bg-alt);
         border: none;
         box-shadow: 0 2px 4px var(--shadow-light);
+    }
+
+    .habit-list-actions {
+        width: 100%;
     }
 
     .habit-list-name {
@@ -1556,11 +1661,68 @@ body {
         font-size: 16px;
     }
 
-    .modal-check-row {
-        padding: 8px 10px;
-        background: var(--primary-lighter);
-        border-radius: 12px;
+    .sleep-page {
+        padding: 18px 10px 24px;
     }
+
+    .sleep-editor-card {
+        padding: 14px;
+        border-radius: 18px;
+    }
+
+    .sleep-editor-header {
+        margin-bottom: 14px;
+    }
+
+    .sleep-page-form {
+        gap: 14px;
+    }
+
+    .sleep-page-form textarea {
+        min-height: 88px;
+    }
+}
+
+.habit-view-dropdown {
+    position: relative;
+    z-index: 20;
+}
+
+.view-menu li {
+    margin: 0;
+}
+
+.habit-view-dropdown .view-menu > li > button {
+    appearance: none;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--secondary-color);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    line-height: 1.2;
+    white-space: nowrap;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.habit-view-dropdown .view-menu > li > button:hover,
+.habit-view-dropdown .view-menu > li > button:focus-visible {
+    background: var(--primary-lighter);
+    color: var(--secondary-color);
+    outline: none;
+    transform: translateX(2px);
+}
+
+.habit-view-dropdown .view-menu > li > button:active {
+    background: var(--primary-light);
+    transform: translateX(1px);
 }
 
 @media (max-width: 380px) {
@@ -1729,8 +1891,7 @@ body {
     pointer-events: none;
 }
 
-.sleep-day-cell,
-.sleep-day-label-wrap {
+.sleep-day-cell {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1786,12 +1947,6 @@ body {
             #cfe2fb 6.25%
         );
     overflow: hidden;
-}
-
-.sleep-timeline-link {
-    display: block;
-    color: inherit;
-    text-decoration: none;
 }
 
 .sleep-segment {
@@ -1863,8 +2018,16 @@ body {
     gap: 8px;
 }
 
-
 @media (max-width: 700px) {
+    .modal-body {
+        overflow-y: auto;
+        max-height: calc(100vh - 120px);
+    }
+
+    .modal-header {
+        cursor: default;
+    }
+
     .sleep-page {
         padding: 22px 14px 30px;
     }
@@ -1903,29 +2066,6 @@ body {
     }
 }
 
-@media (max-width: 520px) {
-    .sleep-page {
-        padding: 18px 10px 24px;
-    }
-
-    .sleep-editor-card {
-        padding: 14px;
-        border-radius: 18px;
-    }
-
-    .sleep-editor-header {
-        margin-bottom: 14px;
-    }
-
-    .sleep-page-form {
-        gap: 14px;
-    }
-
-    .sleep-page-form textarea {
-        min-height: 88px;
-    }
-}
-
 .sleep-grid.yearly-view .sleep-timeline-cell {
     padding: 0;
 }
@@ -1955,156 +2095,3 @@ body {
     color: #555;
 }
 
-.m-date {
-    display: none;
-}
-
-.dropdown-arrow {
-    display: none;
-}
-
-@media (max-width: 650px) {
-    html, body {
-        overflow-x: hidden;
-        width: 100%;
-    }
-
-    .habit-page {
-        padding: 15px 5px;
-        margin: 0;
-        width: 100%;
-        box-sizing: border-box;
-        display: block;
-    }
-
-    .habit-content-shell,
-    .habit-content-shell-weekly,
-    .habit-content-shell-daily,
-    .habit-content-shell-monthly,
-    .habit-content-shell-yearly {
-        width: 100%;
-        margin: 0 auto;
-        padding: 0;
-    }
-
-    .habit-table thead {
-        display: none;
-    }
-
-    .habit-table-shell {
-        display: block;
-        width: 100%;
-        max-width: 100vw;
-        overflow-x: hidden;
-        padding: 0;
-        margin: 0;
-        box-sizing: border-box;
-    }
-
-    .habit-table-shell::before,
-    .habit-table-shell::after {
-        display: none;
-    }
-
-    .habit-table, .habit-table tbody {
-        display: block;
-        width: 100%;
-        min-width: 0 !important;
-        border-spacing: 0;
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    .habit-table tr {
-        display: block;
-        background: #ffffff;
-        border: 1px solid var(--border-list);
-        border-radius: 20px;
-        margin: 0 auto 20px auto;
-        width: 92%;
-        max-width: 400px;
-        padding: 15px;
-        box-sizing: border-box;
-        box-shadow: 0 4px 12px var(--shadow-light);
-        float: none;
-    }
-
-    .habit-table td.habit-name {
-        display: block;
-        position: static;
-        width: 100%;
-        min-width: 0;
-        background: transparent;
-        box-shadow: none;
-        text-align: center;
-        font-size: 18px;
-        font-weight: 800;
-        border-bottom: 1px solid var(--border-list);
-        margin-bottom: 12px;
-        padding: 0 0 10px 0;
-        cursor: pointer;
-    }
-
-    .dropdown-arrow {
-        display: inline-block;
-        margin-left: 8px;
-        transition: transform 0.2s ease;
-    }
-
-    tr.collapsed .dropdown-arrow {
-        transform: rotate(-90deg);
-    }
-
-    .habit-table td.habit-cell {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-
-        width: 100%;
-        min-width: 0;
-        min-height: 48px;
-        background: var(--bg-alt);
-        margin-bottom: 6px;
-        padding: 0 15px;
-        border-radius: 12px;
-        box-sizing: border-box;
-        border: none;
-    }
-
-    tr.collapsed .habit-cell,
-    tr.collapsed .habit-settings-col {
-        display: none;
-    }
-
-    .m-date {
-        display: block;
-        font-size: 14px;
-        color: var(--text-muted);
-        font-weight: 600;
-    }
-
-    .m-status {
-        display: block;
-        font-size: 16px;
-        font-weight: 700;
-        color: var(--secondary-color);
-    }
-
-    .habit-settings-col {
-        display: block;
-        text-align: right;
-        padding: 5px 0 0 0;
-        width: 100%;
-    }
-
-    .habit-table td.done {
-        background-color: #e0f0ff;
-        color: var(--secondary-color);
-    }
-}
-
-@media (min-width: 651px) {
-    .m-date { display: none; }
-}

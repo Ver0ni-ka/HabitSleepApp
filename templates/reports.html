@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block content %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <div class="reports-layout">
+        <div id="report-chart-panel" class="reports-chart-panel">
+            <div id="report-chart-content">
+                {% if active_chart == 'sleep-profile' %}
+                    <canvas id="sleepProfileChart"></canvas>
+
+                    <script>
+                    (function () {
+                        fetch("{% url 'report-data' %}")
+                          .then(res => res.json())
+                          .then(data => {
+                            const counts = data.sleep_profile.counts;
+                            const maxCount = Math.max(...counts, 1);
+
+                            new Chart(document.getElementById('sleepProfileChart'), {
+                              type: 'line',
+                              data: {
+                                labels: data.sleep_profile.labels,
+                                datasets: [{
+                                  label: 'Avg sleep duration',
+                                  data: data.sleep_profile.values,
+                                  borderColor: '#b7d8ff',
+                                  tension: 0.3,
+                                  pointRadius: counts.map(c => 3 + (c / maxCount) * 7),
+                                  pointBackgroundColor: counts.map(c => {
+                                    const alpha = c / maxCount;
+                                    return `rgba(183, 216, 255, ${alpha})`;
+                                  })
+                                },
+                                {
+                                  label: 'Optimal sleep duration',
+                                  data: Array(data.sleep_profile.values.length).fill(9),
+                                  borderColor: 'transparent',
+                                  pointRadius: 0,
+                                  fill: {value: 7},
+                                  backgroundColor: 'rgba(56,181,56,0.12)'
+                                }]
+                              },
+                              options: {
+                                maintainAspectRatio: false,
+                                scales: {
+                                  y: {
+                                    suggestedMin: 4,
+                                    suggestedMax: 12
+                                  }
+                                }
+                              }
+                            });
+                          });
+                    })();
+                    </script>
+                {% elif active_chart == 'sleep-impact' %}
+                    <canvas id="sleepImpactChart"></canvas>
+
+                    <script>
+                    (function () {
+                        fetch("{% url 'report-data' %}")
+                          .then(res => res.json())
+                          .then(data => {
+                            const impactCounts = data.sleep_impact.counts;
+                            const maxImpact = Math.max(...impactCounts, 1);
+
+                            new Chart(document.getElementById('sleepImpactChart'), {
+                              type: 'bar',
+                              data: {
+                                labels: data.sleep_impact.labels,
+                                datasets: [
+                                  {
+                                    label: 'Reliability',
+                                    data: impactCounts.map(c => c / maxImpact),
+                                    type: 'line',
+                                       clip: false,
+                                    borderColor: '#7a1c1c',
+                                    backgroundColor: '#7a1c1c',
+                                    tension: 0.3,
+                                    pointRadius: 4,
+                                    pointBackgroundColor: '#7a1c1c'
+                                  },
+                                  {
+                                    label: 'Habit completion rate',
+                                    data: data.sleep_impact.values,
+                                    backgroundColor: '#b7d8ff'
+                                  }
+                                ]
+                              },
+                              options: {
+                                maintainAspectRatio: false,
+                                scales: {
+                                  y: {
+                                    min: 0,
+                                    max: 1
+                                  }
+                                },
+                                plugins: {
+                                  tooltip: {
+                                    mode: 'index',
+                                    intersect: false
+                                  }
+                                }
+                              }
+                            });
+                          });
+                    })();
+                    </script>
+                {% else %}
+                    <canvas id="habitsChart"></canvas>
+
+                    <script>
+                    (function () {
+                        fetch("{% url 'report-data' %}")
+                          .then(res => res.json())
+                          .then(data => {
+                            new Chart(document.getElementById('habitsChart'), {
+                              type: 'bar',
+                              data: {
+                                labels: data.habits_chart.labels,
+                                datasets: [{
+                                  label: 'Habit success rate',
+                                  data: data.habits_chart.values,
+                                  backgroundColor: '#b7d8ff'
+                                }]
+                              },
+                              options: {
+                                maintainAspectRatio: false,
+                                scales: {
+                                  y: { min: 0, max: 1 }
+                                }
+                              }
+                            });
+                          });
+                    })();
+                    </script>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="home-actions reports-actions" aria-label="Report charts">
+            <button type="button"
+                    class="home-action {% if active_chart == 'habits' %}active{% endif %}"
+                    hx-get="{% url 'report-page' %}?chart=habits"
+                    hx-select="#report-chart-content"
+                    hx-target="#report-chart-panel"
+                    hx-swap="innerHTML">
+                <span class="home-action-icon">✔</span>
+                <span class="home-action-text">Habit success</span>
+                <span class="home-action-arrow">&gt;</span>
+            </button>
+            <button type="button"
+                    class="home-action {% if active_chart == 'sleep-profile' %}active{% endif %}"
+                    hx-get="{% url 'report-page' %}?chart=sleep-profile"
+                    hx-select="#report-chart-content"
+                    hx-target="#report-chart-panel"
+                    hx-swap="innerHTML">
+                <span class="home-action-icon">🛏</span>
+                <span class="home-action-text">Sleep profile</span>
+                <span class="home-action-arrow">&gt;</span>
+            </button>
+            <button type="button"
+                    class="home-action {% if active_chart == 'sleep-impact' %}active{% endif %}"
+                    hx-get="{% url 'report-page' %}?chart=sleep-impact"
+                    hx-select="#report-chart-content"
+                    hx-target="#report-chart-panel"
+                    hx-swap="innerHTML">
+                <span class="home-action-icon">☯</span>
+                <span class="home-action-text">Sleep impact</span>
+                <span class="home-action-arrow">&gt;</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+    document.querySelectorAll('.reports-actions .home-action').forEach((button) => {
+        button.addEventListener('click', () => {
+            document.querySelectorAll('.reports-actions .home-action').forEach((item) => {
+                item.classList.remove('active');
+            });
+            button.classList.add('active');
+        });
+    });
+    </script>
+{% endblock %}

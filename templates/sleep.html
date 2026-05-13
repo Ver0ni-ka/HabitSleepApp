@@ -8,9 +8,9 @@
                 <div class="habit-view-dropdown">
                     <button class="habit-btn" id="sleepViewToggle">&#8942;</button>
                     <ul id="sleepViewMenu" class="view-menu">
-                        <li onclick="changeView('weekly')">Weekly</li>
-                        <li onclick="changeView('monthly')">Monthly</li>
-                        <li onclick="changeView('yearly')">Yearly</li>
+                        <li><button type="button" onclick="changeView('weekly')">Weekly</button></li>
+                        <li><button type="button" onclick="changeView('monthly')">Monthly</button></li>
+                        <li><button type="button" onclick="changeView('yearly')">Yearly</button></li>
                     </ul>
                 </div>
                 <a href="{% url 'home' %}" class="habit-btn">&times;</a>
@@ -140,7 +140,6 @@
     </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
 <script>
 const sleepViewToggle = document.getElementById('sleepViewToggle');
 const sleepViewMenu = document.getElementById('sleepViewMenu');
@@ -172,7 +171,7 @@ function minutesToTime(totalMinutes) {
 }
 
 function changeView(view) {
-    window.location.href = `?view=${view}`;
+    globalThis.location.href = `?view=${view}`;
 }
 
 sleepViewToggle.addEventListener('click', () => {
@@ -258,7 +257,7 @@ function saveSleepPage() {
     .then(data => {
         if (data.status === 'updated') {
             if (data.redirect_url) {
-                window.location.href = data.redirect_url;
+                globalThis.location.href = data.redirect_url;
             } else {
                 initialBedtime = pageBedtime.value;
                 initialWaketime = pageWaketime.value;

@@ -3,7 +3,6 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
-from django.urls import reverse
 
 
 class User(AbstractUser):
@@ -38,9 +37,6 @@ class SleepLog(models.Model):
             return f"{hours}h {minutes}m"
         return "0h"
 
-    def get_absolute_url(self):
-        return reverse("sleep-detail", args=[str(self.id)])
-
 class Habit(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='habits')
@@ -48,16 +44,8 @@ class Habit(models.Model):
     description = models.TextField(blank=True)
     status = models.BooleanField(default=True)
 
-    def is_done_on(self, date):
-        return self.logs.filter(date=date, if_done=True).exists()
-
-    def get_absolute_url(self):
-        return reverse("habit-detail", args=[str(self.id)])
-
 class HabitLog(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
     habit = models.ForeignKey(Habit, on_delete=models.CASCADE, related_name='logs')
     date = models.DateField()
     if_done = models.BooleanField(default=False)
-    def get_absolute_url(self):
-        return reverse("habit-log-detail", args=[str(self.id)])

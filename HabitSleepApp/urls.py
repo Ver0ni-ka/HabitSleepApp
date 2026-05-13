@@ -16,6 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import RedirectView
+
 from HabitsAndSleep import views
 
 urlpatterns = [
@@ -35,4 +37,8 @@ urlpatterns = [
     path("habits/<uuid:pk>/edit/", views.HabitUpdateView.as_view(), name="habit-edit"),
     path("habits/<uuid:habit_id>/delete/", views.delete_habit, name="habit-delete"),
     path("habits/all", views.all_habit_list_view, name="habit-list"),
+    path('reports/', views.report_page, name="report-page"),
+    path('data/reports/', views.report_data, name="report-data"),
+    path('favicon.ico', RedirectView.as_view(url='/static/icon_192x192.png')),
+    path('', include('pwa.urls')),
 ]

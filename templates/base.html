@@ -1,13 +1,17 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+{% load pwa %}
+{% progressive_web_app_meta %}
+<link rel="manifest" href="manifest.json">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Tracker{% endblock %}</title>
+    <title>{% block title %}Habits and Sleep{% endblock %}</title>
 
-    <link rel="stylesheet" href="{% static 'styles/styles.css' %}?v=2.8">
+    <link rel="stylesheet" href="{% static 'styles/styles.css' %}?v=2.12">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
     <script src="https://unpkg.com/htmx.org@2.0.10"></script>
 </head>
 <body>
@@ -25,11 +29,11 @@
         <button type="button" onclick="toggleSidebar()" aria-label="Close menu">✕</button>
     </div>
 
-    <nav class="nav">
+    <nav class="nav" aria-label="Navigation">
         <a href="{% url 'home' %}" class="nav-item">🏠 Home</a>
         <a href="{% url 'habits-page' %}" class="nav-item">✅ Habits</a>
         <a href="{% url 'sleep-page' %}" class="nav-item">🌙 Sleep</a>
-        <a href="{% url 'home' %}" class="nav-item">📊 Analytics</a>
+        <a href="{% url 'report-page' %}" class="nav-item">📊 Analytics</a>
         <a href="{% url 'edit-profile' %}" class="nav-item">👤 Profile</a>
         <form method="post" action="{% url 'logout' %}" class="nav-item logout-link">
             {% csrf_token %}
@@ -38,11 +42,11 @@
     </nav>
 </div>
 
-<div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+<div id="overlay" class="overlay" onclick="toggleSidebar()" onkeydown="if(event.key === 'Enter' || event.key === ' ') toggleSidebar()"></div>
 
 {% else %}
 <header class="header">
-    <nav class="auth-links">
+    <nav class="auth-links" aria-label="Authentication">
         <a href="{% url 'login' %}">Login</a>
         <span>|</span>
         <a href="{% url 'register' %}">Register</a>
@@ -64,5 +68,3 @@
 
 </body>
 </html>
-
-

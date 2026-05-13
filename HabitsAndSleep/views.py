@@ -2,6 +2,7 @@ import calendar
 import datetime
 from datetime import timedelta
 from allauth.socialaccount.models import SocialAccount
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -12,6 +13,7 @@ from django.utils import timezone
 from django.views.generic import CreateView, UpdateView
 from .forms import DeleteAccountForm, LoginForm, MyUserCreationForm, ProfileEditForm, StyledPasswordChangeForm
 from .models import Habit, HabitLog, SleepLog, User
+from django.db.models import Min
 
 # Helpers
 TRACKER_VIEWS = ('weekly', 'monthly', 'yearly')
@@ -64,7 +66,10 @@ def login_view(request):
                 login(request, user, backend='django.contrib.auth.backends.ModelBackend')
                 if not form.cleaned_data.get('remember_me'):
                     request.session.set_expiry(0)
-                return redirect(next_url or 'home')
+                if next_url and url_has_allowed_host_and_scheme(url=next_url, allowed_hosts={request.get_host()}):
+                    return redirect(next_url)
+
+                return redirect('home')
             error_message = "Invalid credentials"
     else:
         form = LoginForm()
@@ -157,7 +162,7 @@ def home(request):
     context = {}
     if request.user.is_authenticated:
         date_today = timezone.localdate()
-        sleep_log, created = get_or_create_sleep_log(request.user, date_today)
+        sleep_log, _ = get_or_create_sleep_log(request.user, date_today)
         habits = Habit.objects.filter(user=request.user, status=True)
         logs = HabitLog.objects.filter(habit__in=habits, date=date_today).values('habit_id', 'if_done')
         logs_dict = {log['habit_id']: log['if_done'] for log in logs}
@@ -262,7 +267,7 @@ def get_sleep_tracker_context(request):
     today_log, _ = get_or_create_sleep_log(request.user, today)
 
     if view == 'yearly':
-        logs = SleepLog.objects.filter(
+        logs = SleepLog.objects.select_related('user').filter(
             user=request.user,
             date__year=start_date.year
         ).order_by('date')
@@ -273,7 +278,7 @@ def get_sleep_tracker_context(request):
 
         logs_by_date = {}
     else:
-        logs = SleepLog.objects.filter(
+        logs = SleepLog.objects.select_related('user').filter(
             user=request.user,
             date__range=[start_date, end_date]
         ).order_by('date')
@@ -606,3 +611,140 @@ def toggle_habit(request, habit_id, date):
     log.if_done = not log.if_done # flipping
     log.save()
     return JsonResponse({'status': 'success', 'if_done': log.if_done})
+
+@login_required
+def report_page(request):
+    chart_type = request.GET.get('chart', 'habits')
+    if chart_type not in ('habits', 'sleep-profile', 'sleep-impact'):
+        chart_type = 'habits'
+    return render(request, 'reports.html', {'active_chart': chart_type})
+
+@login_required
+def report_data(request):
+    user = request.user
+    today = timezone.localdate()
+
+    habits = Habit.objects.filter(user=user, status=True)
+    habit_labels = []
+    habit_values = []
+    for habit in habits:
+        first_done_date = HabitLog.objects.filter(
+            habit=habit,
+            if_done=True
+        ).aggregate(first=Min("date"))["first"]
+        if not first_done_date:
+            continue
+        logs = HabitLog.objects.filter(
+            habit=habit,
+            date__range=[first_done_date, today]
+        )
+        log_map = {log.date: log.if_done for log in logs}
+        total = 0
+        done = 0
+        d = first_done_date
+        while d <= today:
+            total += 1
+            if log_map.get(d) is True:
+                done += 1
+            d += timedelta(days=1)
+        habit_labels.append(habit.name)
+        habit_values.append(round(done / total, 2) if total else 0)
+
+    sleep_logs = SleepLog.objects.filter(user=user)
+    sleep_dict = {}
+    valid_sleep_logs = []
+    for log in sleep_logs:
+        if not (log.bedtime and log.waketime):
+            continue
+        duration = (log.waketime - log.bedtime).total_seconds() / 3600
+        sleep_dict[log.date] = duration
+        valid_sleep_logs.append((log, duration))
+
+    sleep_profile_map = {}
+    for log, duration in valid_sleep_logs:
+        dt = timezone.localtime(log.bedtime)
+        hour = dt.hour
+        minute = dt.minute
+        if minute < 15:
+            temp_hour = hour
+            temp_min = 0
+        elif minute < 45:
+            temp_hour = hour
+            temp_min = 30
+        else:
+            temp_hour = (hour + 1) % 24
+            temp_min = 0
+        temp = f"{temp_hour:02d}:{temp_min:02d}"
+        if temp not in sleep_profile_map:
+            sleep_profile_map[temp] = {"sum": 0, "count": 0}
+        sleep_profile_map[temp]["sum"] += duration
+        sleep_profile_map[temp]["count"] += 1
+    def sort_key(label):
+        h, m = map(int, label.split(":"))
+        return ((h - 18) % 24) * 60 + m
+    sleep_profile_labels = []
+    sleep_profile_values = []
+    sleep_profile_counts = []
+    for label in sorted(sleep_profile_map.keys(), key=sort_key):
+        data = sleep_profile_map[label]
+        avg = data["sum"] / data["count"]
+        sleep_profile_labels.append(label)
+        sleep_profile_values.append(round(avg, 2))
+        sleep_profile_counts.append(data["count"])
+
+
+    sleep_intervals = {
+        "<4": [],
+        "4-5.9": [],
+        "6-6.9": [],
+        "7-7.9": [],
+        "8-8.9": [],
+        "9-9.9": [],
+        "10-11.9": [],
+        "12+": []
+    }
+    def get_interval(h):
+        if h < 4:
+            return "<4"
+        elif h < 6:
+            return "4-5.9"
+        elif h < 7:
+            return "6-6.9"
+        elif h < 8:
+            return "7-7.9"
+        elif h < 9:
+            return "8-8.9"
+        elif h < 10:
+            return "9-9.9"
+        elif h < 12:
+            return "10-11.9"
+        return "12+"
+    habit_logs_all = HabitLog.objects.filter(habit__user=user, habit__status=True)
+    for log in habit_logs_all:
+        sleep = sleep_dict.get(log.date)
+        if sleep is None:
+            continue
+        sleep_intervals[get_interval(sleep)].append(1 if log.if_done else 0)
+    sleep_impact_labels = list(sleep_intervals.keys())
+    sleep_impact_values = [
+        round(sum(v) / len(v), 2) if v else 0
+        for v in sleep_intervals.values()
+    ]
+    sleep_impact_counts = [len(v) for v in sleep_intervals.values()]
+
+    return JsonResponse({
+        "habits_chart": {
+            "labels": habit_labels,
+            "values": habit_values
+        },
+        "sleep_profile": {
+            "labels": sleep_profile_labels,
+            "values": sleep_profile_values,
+            "counts": sleep_profile_counts
+        },
+        "sleep_impact": {
+            "labels": sleep_impact_labels,
+            "values": sleep_impact_values,
+            "counts": sleep_impact_counts
+        }
+    })

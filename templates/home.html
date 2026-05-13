@@ -85,7 +85,7 @@
                 <span class="home-action-text">Sleep</span>
                 <span class="home-action-arrow">&gt;</span>
             </a>
-            <a href="{% url 'home' %}" class="home-action">
+            <a href="{% url 'report-page' %}" class="home-action">
                 <span class="home-action-icon">A</span>
                 <span class="home-action-text">Analytics</span>
                 <span class="home-action-arrow">&gt;</span>
@@ -93,7 +93,6 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
     <script>
         const todayStr = "{{ today_str }}";
         let initialBedtime = "{{ sleep_log.bedtime|date:'H:i' }}";
@@ -222,7 +221,7 @@
             .then(data => {
                 if (data.status === 'updated') {
                     if (data.redirect_url) {
-                        window.location.href = data.redirect_url;
+                        globalThis.location.href = data.redirect_url;
                     } else {
                         initialBedtime = quickBedtime.value;
                         initialWaketime = quickWaketime.value;
@@ -239,5 +238,3 @@
     <p>Please log in to access tracking features.</p>
     {% endif %}
 {% endblock %}
-
-

@@ -12,15 +12,18 @@
         <input type="hidden" name="view" value="{{ view }}">
         <input type="hidden" name="week_change" value="{{ week_change }}">
         <div class="modal-field">
-            <label>Name:</label>
-            {{ form.name }}
+            <label>
+              Name
+              {{ form.name }}
+            </label>
         </div>
         <div class="modal-field">
-            <label>Description:</label>
+            <label>Description:
             {{ form.description }}
+            </label>
         </div>
         <div class="modal-field modal-field-checkbox">
-            <label class="modal-check-row">
+            <label class="modal-check-row" aria-label="Active status">
                 {{ form.status }}
                 <span>Active</span>
             </label>

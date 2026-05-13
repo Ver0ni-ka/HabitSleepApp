@@ -7,9 +7,9 @@
                 <div class="habit-view-dropdown">
                     <button class="habit-btn" id="viewToggle">&#8942;</button>
                     <ul id="viewMenu" class="view-menu">
-                        <li onclick="changeView('weekly')">Weekly</li>
-                        <li onclick="changeView('monthly')">Monthly</li>
-                        <li onclick="changeView('yearly')">Yearly</li>
+                        <li><button type="button" onclick="changeView('weekly')">Weekly</button></li>
+                        <li><button type="button" onclick="changeView('monthly')">Monthly</button></li>
+                        <li><button type="button" onclick="changeView('yearly')">Yearly</button></li>
                     </ul>
                 </div>
                 <a href="{% url 'home' %}" class="habit-btn">&times;</a>
@@ -59,7 +59,7 @@
                             <td data-label="{{ day.day_label }}"
                                 id="cell-{{ row.habit.id }}-{{ day.date }}"
                                 class="habit-cell day-col {% if day.is_done %}done{% endif %} {% if day.is_future %}future{% endif %} {% if day.is_today %}today{% endif %} {% if day.is_yearly %}yearly{% endif %}"
-                                {% if not day.is_future and not day.is_yearly %}onclick="toggleHabit('{{ row.habit.id }}', '{{ day.date }}')" {% endif %}>
+                                {% if not day.is_future and not day.is_yearly %}onclick="toggleHabit('{{ row.habit.id }}', '{{ day.date }}')"{% endif %}>
                                 <span class="m-date">{{ day.day_label }}</span>
                                 <span class="m-status">
 
@@ -141,7 +141,7 @@ document.body.addEventListener('click', (event) => {
 
 document.addEventListener('click', (e) => {
     const habitNameCell = e.target.closest('.habit-name');
-    if (habitNameCell && window.innerWidth <= 650) {
+    if (habitNameCell && window.innerWidth <= 700) {
         const row = habitNameCell.closest('tr');
         if (row) {
             row.classList.toggle('collapsed');
@@ -150,7 +150,7 @@ document.addEventListener('click', (e) => {
 });
 
 function changeView(view) {
-    window.location.href = `?view=${view}`;
+    globalThis.location.href = `?view=${view}`;
 }
 
 function toggleHabit(habitId, date) {
@@ -158,7 +158,6 @@ function toggleHabit(habitId, date) {
         .then(r => r.json())
         .then(data => {
             const cell = document.getElementById(`cell-${habitId}-${date}`);
-            const mCell = document.getElementById(`cell-m-${habitId}-${date}`);
             const icon = data.if_done ? '\u2713' : '\u2014';
 
             if (cell) {
@@ -166,16 +165,11 @@ function toggleHabit(habitId, date) {
                 const statusSpan = cell.querySelector('.m-status');
                 if (statusSpan) statusSpan.innerText = icon;
             }
-            if (mCell) {
-                mCell.classList.toggle('done', data.if_done);
-                const mStatusSpan = mCell.querySelector('.m-status');
-                if (mStatusSpan) mStatusSpan.innerText = icon;
-            }
         });
 }
 
 function isSmallScreenModal() {
-    return window.matchMedia('(max-width: 700px)').matches;
+    return globalThis.matchMedia('(max-width: 700px)').matches;
 }
 
 function resetModalWindowPosition() {

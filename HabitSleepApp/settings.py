@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-2i*hms)i=see3ne_@m@kh$het7pdntfid6&h@46=6#!zbgclkt'
+SECRET_KEY = 'django-insecure-2i*hms)i=see3ne_@m@kh$het7pdntfid6&h@46=6#!zbgclkt' # NOSONAR
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -38,11 +38,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'pwa',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
-    #'allauth.socialaccount.providers.github',
     'HabitsAndSleep.apps.HabitsandsleepConfig',
 ]
 
@@ -69,7 +69,7 @@ SOCIALACCOUNT_PROVIDERS = {
         },
         'APP': {
             'client_id': '965201308657-k96631dkbpiebjg4pluquqrtf4kv6jv2.apps.googleusercontent.com',
-            'secret': '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',
+            'secret': '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', # NOSONAR
             'key': ''
         }
     }
@@ -147,6 +147,42 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # 2 weeks for one session
 SESSION_COOKIE_AGE = 1209600
+
+
+
+PWA_APP_NAME = 'HabitsAndSleep'
+PWA_APP_DESCRIPTION = "HabitsAndSleep PWA"
+PWA_APP_THEME_COLOR = '#2b3a55'
+PWA_APP_BACKGROUND_COLOR = '#e8f3ff'
+PWA_APP_DISPLAY = 'standalone'
+PWA_APP_SCOPE = '/'
+PWA_APP_ORIENTATION = 'any'
+PWA_APP_START_URL = '/'
+PWA_APP_STATUS_BAR_COLOR = 'default'
+PWA_APP_ICONS = [
+    {
+        'src': '/static/icon_192x192.png',
+        'sizes': '192x192',
+    },
+    {
+        'src': '/static/icon_512.png',
+        'sizes': '512x512',
+    }
+]
+PWA_APP_ICONS_APPLE = [
+    {
+        'src': '/static/icon_192x192.png',
+        'sizes': '192x192',
+    }
+]
+PWA_APP_SPLASH_SCREEN = [
+    {
+        'src': '/static/icon.png',
+        'media': '(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)'
+    }
+]
+PWA_APP_DIR = 'ltr'
+PWA_APP_LANG = 'en-US'
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
