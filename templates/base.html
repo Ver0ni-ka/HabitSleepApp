@@ -11,8 +11,12 @@
 
     <link rel="stylesheet" href="{% static 'styles/styles.css' %}?v=2.12">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
-    <script src="https://unpkg.com/htmx.org@2.0.10"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"
+            crossorigin="anonymous"
+            integrity="sha512-UOJe4paV6hYWBnS0c9GnIRH8PLm2nFK22uhfAvsTIqd3uwnWsVri1OPn5fJYdLtGY3wB11LGHJ4yPU1WFJeBYQ=="></script>
+    <script src="https://unpkg.com/htmx.org@2.0.10"
+            integrity="sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V"
+            crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -42,8 +46,11 @@
     </nav>
 </div>
 
-<div id="overlay" class="overlay" onclick="toggleSidebar()" onkeydown="if(event.key === 'Enter' || event.key === ' ') toggleSidebar()"></div>
-
+<div id="overlay"
+     class="overlay"
+     onclick="toggleSidebar()"
+     onkeydown="if(event.key === 'Enter' || event.key === ' ') toggleSidebar()"
+     role="button"></div>
 {% else %}
 <header class="header">
     <nav class="auth-links" aria-label="Authentication">

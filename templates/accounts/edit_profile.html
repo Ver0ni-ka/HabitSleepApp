@@ -7,47 +7,7 @@
                     <h2 class="home-col-title account-title">Edit profile</h2>
                     <p class="account-subtitle">{{ profile_email }}</p>
                 </div>
-
-                {% if form.non_field_errors %}
-                    <div class="account-alert">
-                        {% for err in form.non_field_errors %}
-                            <div>{{ err }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
-                <form method="post" action="{{ request.path }}" class="habit-modal-form account-form">
-                    {% csrf_token %}
-                    {% for hidden in form.hidden_fields %}
-                        {{ hidden }}
-                    {% endfor %}
-
-                    {% for field in form.visible_fields %}
-                        <div class="modal-field {% if field.field.widget.input_type == 'checkbox' %}modal-field-checkbox{% endif %}">
-                            {% if field.field.widget.input_type == 'checkbox' %}
-                                <label class="modal-check-row" for="{{ field.id_for_label }}">
-                                    {{ field }}
-                                    <span>{{ field.label }}</span>
-                                </label>
-                            {% else %}
-                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                {{ field }}
-                            {% endif %}
-
-                            {% if field.errors %}
-                                <div class="account-field-errors">
-                                    {% for err in field.errors %}
-                                        <div>{{ err }}</div>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-
-                    <div class="modal-actions">
-                        <button type="submit" class="habit-btn">Save</button>
-                    </div>
-                </form>
+                {% include "accounts/account_form.html" with form_action=request.path submit_text="Save" %}
             </div>
         </div>
     </div>

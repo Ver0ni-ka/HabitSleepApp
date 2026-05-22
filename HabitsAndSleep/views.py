@@ -15,8 +15,6 @@ from .forms import DeleteAccountForm, LoginForm, MyUserCreationForm, ProfileEdit
 from .models import Habit, HabitLog, SleepLog, User
 from django.db.models import Min
 
-# Helpers
-TRACKER_VIEWS = ('weekly', 'monthly', 'yearly')
 MAX_HABITS = 12
 
 def user_can_change_password(user):
@@ -26,8 +24,7 @@ def user_can_change_password(user):
 def is_htmx(request):
     return request.headers.get('HX-Request') == 'true'
 
-# Tells the browser to close popup and refresh
-def close_modal_response(target_id, trigger=None, redirect_url=None):
+def close_modal(target_id, trigger=None, redirect_url=None):
     response = HttpResponse(f'<div id="{target_id}" hx-swap-oob="innerHTML"></div>')
     if trigger:
         response['HX-Trigger'] = trigger
@@ -52,36 +49,51 @@ def register_view(request):
     })
 
 def login_view(request):
-    error_message = None
     next_url = request.GET.get('next', '')
-    if request.method == "POST":
-        form = LoginForm(request.POST)
-        if form.is_valid():
-            email = form.cleaned_data.get("email")
-            password = form.cleaned_data.get("password")
-            user_obj = User.objects.filter(email=email).first()
-            user = authenticate(request, username=user_obj.username, password=password) if user_obj else None
+    if request.method != "POST":
+        return render(request, 'accounts/login.html', {
+            'form': LoginForm(),
+            'error': None,
+            'next': next_url,
+            'login_url': reverse('login'),
+            'register_url': reverse('register'),
+            'hidden_fields': [{'name': 'next', 'value': next_url}],
+        })
 
-            if user is not None:
-                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                if not form.cleaned_data.get('remember_me'):
-                    request.session.set_expiry(0)
-                if next_url and url_has_allowed_host_and_scheme(url=next_url, allowed_hosts={request.get_host()}):
-                    return redirect(next_url)
+    form = LoginForm(request.POST)
+    if not form.is_valid():
+        return render(request, 'accounts/login.html', {
+            'form': form,
+            'error': None,
+            'next': next_url,
+            'login_url': reverse('login'),
+            'register_url': reverse('register'),
+            'hidden_fields': [{'name': 'next', 'value': next_url}],
+        })
 
-                return redirect('home')
-            error_message = "Invalid credentials"
-    else:
-        form = LoginForm()
+    email = form.cleaned_data.get("email")
+    password = form.cleaned_data.get("password")
+    user_obj = User.objects.filter(email=email).first()
+    user = authenticate(request, username=user_obj.username, password=password) if user_obj else None
 
-    return render(request, 'accounts/login.html', {
-        'form': form,
-        'error': error_message,
-        'next': next_url,
-        'login_url': reverse('login'),
-        'register_url': reverse('register'),
-        'hidden_fields': [{'name': 'next', 'value': next_url}],
-    })
+    if user is None:
+        return render(request, 'accounts/login.html', {
+            'form': form,
+            'error': "Invalid credentials",
+            'next': next_url,
+            'login_url': reverse('login'),
+            'register_url': reverse('register'),
+            'hidden_fields': [{'name': 'next', 'value': next_url}],
+        })
+
+    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+    if not form.cleaned_data.get('remember_me'):
+        request.session.set_expiry(0)
+
+    if next_url and url_has_allowed_host_and_scheme(url=next_url, allowed_hosts={request.get_host()}):
+        return redirect(next_url)
+
+    return redirect('home')
 
 @login_required
 def logout_view(request):
@@ -148,7 +160,7 @@ def delete_account(request):
             logout(request)
             user.delete()
             if is_htmx(request):
-                return close_modal_response('accountModalContent', redirect_url=reverse('login'))
+                return close_modal('accountModalContent', redirect_url=reverse('login'))
             return redirect('home')
     else:
         form = DeleteAccountForm(request.user)
@@ -176,7 +188,7 @@ def home(request):
     return render(request, 'home.html', context)
 
 
-def build_default_sleep_values(log_date):
+def default_sleep_data(log_date):
     bedtime = timezone.make_aware(
         datetime.datetime.combine(log_date - timedelta(days=1), datetime.time(23, 0))
     )
@@ -194,11 +206,11 @@ def get_or_create_sleep_log(user, log_date):
     return SleepLog.objects.get_or_create(
         user=user,
         date=log_date,
-        defaults=build_default_sleep_values(log_date),
+        defaults=default_sleep_data(log_date),
     )
 
 
-def update_sleep_log_from_post(sleep_log, post_data):
+def update_sleep_log(sleep_log, post_data):
     bed_time_str = post_data.get('bedtime')
     wake_time_str = post_data.get('waketime')
     b_time = datetime.datetime.strptime(bed_time_str, '%H:%M').time()
@@ -206,7 +218,7 @@ def update_sleep_log_from_post(sleep_log, post_data):
     log_date = sleep_log.date
     dt_bed = timezone.make_aware(datetime.datetime.combine(log_date, b_time))
     dt_wake = timezone.make_aware(datetime.datetime.combine(log_date, w_time))
-    # If waketime is earlier than bedtime, the user went to bed "yesterday"
+    # Bedtime belongs to the previous day
     if dt_wake <= dt_bed:
         dt_bed -= timedelta(days=1)
 
@@ -217,25 +229,28 @@ def update_sleep_log_from_post(sleep_log, post_data):
     sleep_log.save()
     return sleep_log
 
-# Math to turn sleep hours into CSS %s for the visual bar
-def get_sleep_timeline_metrics(sleep_log):
-    timeline_start = 21 * 60
-    timeline_end = (24 * 60) + (13 * 60)
-    total_minutes = timeline_end - timeline_start
+# Values for sleep timeline
+def sleep_timeline(sleep_log):
+    timeline_start = datetime.time(21, 0)
+    timeline_end = datetime.time(13, 0)
     bedtime = timezone.localtime(sleep_log.bedtime)
     waketime = timezone.localtime(sleep_log.waketime)
+    current_timezone = timezone.get_current_timezone()
+    window_start = timezone.make_aware(
+        datetime.datetime.combine(sleep_log.date - timedelta(days=1), timeline_start),
+        current_timezone,
+    )
+    window_end = timezone.make_aware(
+        datetime.datetime.combine(sleep_log.date, timeline_end),
+        current_timezone,
+    )
+    total_minutes = (window_end - window_start).total_seconds() / 60
 
-    def adjust_minutes(dt):
-        m = dt.hour * 60 + dt.minute
-        return m + 1440 if m < timeline_start else m
-
-    start_m = adjust_minutes(bedtime)
-    end_m = adjust_minutes(waketime)
-
-    clamped_start = max(timeline_start, min(start_m, timeline_end))
-    clamped_end = max(clamped_start, min(end_m, timeline_end))
-    # Figures out where the blue bar starts and how wide it should be
-    left_pct = ((clamped_start - timeline_start) / total_minutes) * 100
+    start_m = (bedtime - window_start).total_seconds() / 60
+    end_m = (waketime - window_start).total_seconds() / 60
+    clamped_start = max(0, min(start_m, total_minutes))
+    clamped_end = max(clamped_start, min(end_m, total_minutes))
+    left_pct = (clamped_start / total_minutes) * 100
     width_pct = max(((clamped_end - clamped_start) / total_minutes) * 100, 2)
 
     return {
@@ -257,123 +272,79 @@ def parse_date_params(request):
         pass
     return view, week_change
 
-def get_sleep_tracker_context(request):
-    today = timezone.localdate()
-    view, week_change = parse_date_params(request)
-    if view not in TRACKER_VIEWS:
-        view = 'weekly'
-
-    start_date, end_date, date_list = get_tracker_date_range(view, today, week_change)
-    today_log, _ = get_or_create_sleep_log(request.user, today)
-
-    if view == 'yearly':
-        logs = SleepLog.objects.select_related('user').filter(
-            user=request.user,
-            date__year=start_date.year
-        ).order_by('date')
-
-        monthly_data = {m: [] for m in range(1, 13)}
-        for log in logs:
-            monthly_data[log.date.month].append(log)
-
-        logs_by_date = {}
-    else:
-        logs = SleepLog.objects.select_related('user').filter(
-            user=request.user,
-            date__range=[start_date, end_date]
-        ).order_by('date')
-        logs_by_date = {log.date: log for log in logs}
-
-    if view != 'yearly':
-        logs_by_date[today] = today_log
-
-    selected_date_raw = request.GET.get('selected_date') or request.POST.get('selected_date')
-
-    if selected_date_raw:
-        try:
-            selected_date = datetime.datetime.strptime(selected_date_raw, '%Y-%m-%d').date()
-        except ValueError:
-            selected_date = today
-    else:
+def get_selected_log(request, today):
+    raw_date = request.GET.get('selected_date') or request.POST.get('selected_date')
+    try:
+        selected_date = datetime.datetime.strptime(raw_date, '%Y-%m-%d').date() if raw_date else today
+    except ValueError:
         selected_date = today
 
     if selected_date > today:
-        selected_log = today_log
-    else:
-        selected_log, _ = get_or_create_sleep_log(request.user, selected_date)
+        return get_or_create_sleep_log(request.user, today)[0]
+    return get_or_create_sleep_log(request.user, selected_date)[0]
 
-    if view != 'yearly' and selected_log.date not in logs_by_date:
+
+def sleep_context(request):
+    today = timezone.localdate()
+    view, week_change = parse_date_params(request)
+    if view not in ('weekly', 'monthly', 'yearly'):
+        view = 'weekly'
+    start_date, end_date, date_list = tracker_date_range(view, today, week_change)
+    today_log, _ = get_or_create_sleep_log(request.user, today)
+    selected_log = get_selected_log(request, today)
+    logs = SleepLog.objects.select_related('user').filter(user=request.user)
+    if view == 'yearly':
+        logs = logs.filter(date__year=start_date.year).order_by('date')
+        monthly_data = {m: [l for l in logs if l.date.month == m] for m in range(1, 13)}
+    else:
+        logs_by_date = {log.date: log for log in logs.filter(date__range=[start_date, end_date])}
+        logs_by_date[today] = today_log
         logs_by_date[selected_log.date] = selected_log
 
     tracker_rows = []
     for d in date_list:
         if view == 'yearly':
-            is_future = (d.year, d.month) > (today.year, today.month)
-            is_today = (d.year, d.month) == (today.year, today.month)
             month_logs = monthly_data.get(d.month, [])
-
-            avg_duration_str = "—"
-            avg_quality = "—"
+            avg_duration = "-"
+            avg_quality = "-"
             if month_logs:
-                total_minutes = 0
-                total_quality = 0
-                for log in month_logs:
-                    delta = log.waketime - log.bedtime
-                    total_minutes += delta.total_seconds() / 60
-                    total_quality += log.quality
-                avg_min = total_minutes / len(month_logs)
-                avg_duration_str = f"{int(avg_min // 60)}h {int(avg_min % 60)}m"
-                avg_quality = round(total_quality / len(month_logs), 1)
+                total_minutes = sum((log.waketime - log.bedtime).total_seconds() / 60 for log in month_logs)
+                avg_minutes = total_minutes / len(month_logs)
+                avg_duration = f"{int(avg_minutes // 60)}h {int(avg_minutes % 60)}m"
+                avg_quality = round(sum(log.quality for log in month_logs) / len(month_logs), 1)
 
-            row = {
+            tracker_rows.append({
                 'date': d,
-                'date_iso': d.strftime('%Y-%m-%d'),
                 'label': d.strftime('%b'),
-                'is_today': is_today,
-                'is_future': is_future,
-                'is_selected': False,
-                'has_log': len(month_logs) > 0,
-                'avg_duration': avg_duration_str,
-                'avg_quality': avg_quality,
                 'is_yearly': True,
-            }
+                'is_today': (d.year, d.month) == (today.year, today.month),
+                'is_future': (d.year, d.month) > (today.year, today.month),
+                'has_log': bool(month_logs),
+                'avg_duration': avg_duration,
+                'avg_quality': avg_quality,
+            })
         else:
             sleep_log = logs_by_date.get(d)
-            if d == today:
-                sleep_log = today_log
-
             is_future = d > today
-            is_selected = not is_future and sleep_log is not None and sleep_log.date == selected_log.date
-
-            if d == today:
-                label = 'Today'
-            elif d == today - timedelta(days=1):
-                label = 'Yesterday'
-            elif d == today + timedelta(days=1):
-                label = 'Tomorrow'
-            else:
-                label = d.strftime('%d.%m')
-
+            labels = {
+                today: 'Today',
+                today - timedelta(days=1): 'Yesterday',
+                today + timedelta(days=1): 'Tomorrow',
+            }
             row = {
                 'date': d,
-                'date_iso': d.strftime('%Y-%m-%d'),
-                'label': label,
+                'label': labels.get(d, d.strftime('%d.%m')),
                 'sleep_log': sleep_log,
-                'has_log': sleep_log is not None,
                 'is_today': d == today,
                 'is_future': is_future,
-                'is_selected': is_selected,
-                'edit_query': f"?view={view}&week_change={week_change}&selected_date={d.strftime('%Y-%m-%d')}" if not is_future else None,
                 'is_yearly': False,
+                'has_log': bool(sleep_log),
+                'is_selected': not is_future and sleep_log and sleep_log.date == selected_log.date,
+                'edit_query': f"?view={view}&week_change={week_change}&selected_date={d.strftime('%Y-%m-%d')}" if not is_future else None,
             }
-
-            if sleep_log is not None:
-                row.update({
-                    'duration': sleep_log.duration,
-                    **get_sleep_timeline_metrics(sleep_log),
-                })
-
-        tracker_rows.append(row)
+            if sleep_log:
+                row.update({'duration': sleep_log.duration, **sleep_timeline(sleep_log)})
+            tracker_rows.append(row)
 
     return {
         'sleep_log': selected_log,
@@ -399,9 +370,7 @@ def get_sleep_tracker_context(request):
 
 @login_required
 def sleep_view(request):
-    context = get_sleep_tracker_context(request)
-
-    # Server-side check to prevent adding sleep for future dates
+    context = sleep_context(request)
     if request.method == 'POST':
         if context['view'] == 'yearly':
             return JsonResponse({'status': 'error', 'message': 'Yearly view cannot be saved'}, status=400)
@@ -409,7 +378,7 @@ def sleep_view(request):
         if target_log.date > timezone.localdate():
             return JsonResponse({'status': 'error', 'message': 'Future dates not allowed'}, status=400)
 
-        update_sleep_log_from_post(target_log, request.POST)
+        update_sleep_log(target_log, request.POST)
         is_quick = request.POST.get('is_quick') == 'true'
         response_data = {
             'status': 'updated',
@@ -421,8 +390,7 @@ def sleep_view(request):
 
     return render(request, 'sleep.html', context)
 
-# Figures out which dates to show on the calendar (week, month, or year)
-def get_tracker_date_range(view, today, week_change):
+def tracker_date_range(view, today, week_change):
     if view == 'monthly':
         month_offset = (today.month - 1) + week_change
         year = today.year + (month_offset // 12)
@@ -438,72 +406,72 @@ def get_tracker_date_range(view, today, week_change):
         end = datetime.date(year, 12, 31)
         date_list = [datetime.date(year, month, 1) for month in range(1, 13)]
         return start, end, date_list
-    else: # weekly
+    else:
         start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_change)
         end = start + timedelta(days=6)
         date_list = [start + timedelta(days=x) for x in range(7)]
         return start, end, date_list
 
-def get_habit_tracker_context(request):
+
+def habit_history(habit, date_list, today, view, logs_dict):
+    history = []
+    for d in date_list:
+        if view == 'yearly':
+            is_future = (d.year, d.month) > (today.year, today.month)
+            is_today = (d.year, d.month) == (today.year, today.month)
+            if is_future:
+                display = '-'
+            else:
+                total_days = today.day if is_today else calendar.monthrange(d.year, d.month)[1]
+                done_days = logs_dict.get((habit.id, d.month), 0)
+                display = f"{done_days}/{total_days}"
+            history.append({
+                'date': d.strftime('%Y-%m-%d'),
+                'is_done': False,
+                'display': display,
+                'day_label': d.strftime('%b'),
+                'is_future': is_future,
+                'is_today': is_today,
+                'is_yearly': True,
+            })
+        else:
+            history.append({
+                'date': d.strftime('%Y-%m-%d'),
+                'is_done': logs_dict.get((habit.id, d), False),
+                'display': None,
+                'day_label': d.strftime('%d.%m %a'),
+                'is_future': d > today,
+                'is_today': d == today,
+                'is_yearly': False,
+            })
+    return history
+
+def habit_context(request):
     today = timezone.localdate()
     view, week_change = parse_date_params(request)
-    if view not in TRACKER_VIEWS:
+    if view not in ('weekly', 'monthly', 'yearly'):
         view = 'weekly'
-
-    start_of_week, end_of_week, date_list = get_tracker_date_range(view, today, week_change)
-
+    start_of_week, end_of_week, date_list = tracker_date_range(view, today, week_change)
     habits = Habit.objects.filter(user=request.user, status=True)
-
+    habit_count = Habit.objects.filter(user=request.user).count()
+    logs_qs = HabitLog.objects.filter(habit__in=habits, date__range=[start_of_week, end_of_week])
     if view == 'yearly':
-        logs = HabitLog.objects.filter(
-            habit__in=habits,
-            date__range=[start_of_week, end_of_week],
-            if_done=True
-        ).values('habit_id', 'date')
+        logs = logs_qs.filter(if_done=True).values('habit_id', 'date')
         logs_dict = {}
         for log in logs:
             key = (log['habit_id'], log['date'].month)
             logs_dict[key] = logs_dict.get(key, 0) + 1
     else:
-        logs = HabitLog.objects.filter(
-            habit__in=habits,
-            date__range=[start_of_week, end_of_week]
-        ).values('habit_id', 'date', 'if_done')
+        logs = logs_qs.values('habit_id', 'date', 'if_done')
         logs_dict = {(log['habit_id'], log['date']): log['if_done'] for log in logs}
 
-    tracker_data = []
-    for habit in habits:
-        history = []
-        for d in date_list:
-            if view == 'yearly':
-                is_future = (d.year, d.month) > (today.year, today.month)
-                is_today = (d.year, d.month) == (today.year, today.month)
-                if is_future:
-                    display = '—'
-                else:
-                    total_days = today.day if is_today else calendar.monthrange(d.year, d.month)[1]
-                    done_days = logs_dict.get((habit.id, d.month), 0)
-                    display = f"{done_days}/{total_days}"
-                history.append({
-                    'date': d.strftime('%Y-%m-%d'),
-                    'is_done': False,
-                    'display': display,
-                    'day_label': d.strftime('%b'),
-                    'is_future': is_future,
-                    'is_today': is_today,
-                    'is_yearly': True,
-                })
-            else:
-                history.append({
-                    'date': d.strftime('%Y-%m-%d'),
-                    'is_done': logs_dict.get((habit.id, d), False),
-                    'display': None,
-                    'day_label': d.strftime('%d.%m %a'),
-                    'is_future': d > today,
-                    'is_today': d == today,
-                    'is_yearly': False,
-                })
-        tracker_data.append({'habit': habit, 'history': history})
+    tracker_data = [
+        {
+            'habit': habit,
+            'history': habit_history(habit, date_list, today, view, logs_dict)
+        }
+        for habit in habits
+    ]
 
     return {
         'date_list': date_list,
@@ -515,13 +483,13 @@ def get_habit_tracker_context(request):
         'today': today,
         'today_month': today.month,
         'today_year': today.year,
-        'can_add_habit': habits.count() < MAX_HABITS,
+        'can_add_habit': habit_count < MAX_HABITS,
     }
 
 
 @login_required
 def habit_tracker_view(request):
-    context = get_habit_tracker_context(request)
+    context = habit_context(request)
     return render(request, 'habits.html', context)
 
 class HabitCreateView(LoginRequiredMixin, CreateView):
@@ -535,14 +503,13 @@ class HabitCreateView(LoginRequiredMixin, CreateView):
         return super().get(request, *args, **kwargs)
 
     def form_valid(self, form):
-        # Stop user from adding more than 12 habits
         if Habit.objects.filter(user=self.request.user).count() >= MAX_HABITS:
             form.add_error(None, f"You cannot add more than {MAX_HABITS} habits.")
             return self.form_invalid(form)
         form.instance.user = self.request.user
         response = super().form_valid(form)
         if is_htmx(self.request):
-            return close_modal_response('habitModalContent', trigger='refresh-habits')
+            return close_modal('habitModalContent', trigger='refresh-habits')
         return response
 
     def get_context_data(self, **kwargs):
@@ -567,7 +534,7 @@ class HabitUpdateView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         if is_htmx(self.request):
-            return close_modal_response('habitModalContent', trigger='refresh-habits')
+            return close_modal('habitModalContent', trigger='refresh-habits')
         return response
 
     def get_context_data(self, **kwargs):
@@ -583,7 +550,7 @@ def delete_habit(request, habit_id):
     if request.method == "POST":
         habit.delete()
         if is_htmx(request):
-            return close_modal_response('habitModalContent', trigger='refresh-habits')
+            return close_modal('habitModalContent', trigger='refresh-habits')
     return redirect("habits-page")
 
 
@@ -600,7 +567,6 @@ def all_habit_list_view(request):
     }
     return render(request, 'habits_all.html', context)
 
-# Checks the "done" status via ajax so the page wont reload
 @login_required
 def toggle_habit(request, habit_id, date):
     date_obj = datetime.datetime.strptime(date, '%Y-%m-%d').date()
@@ -608,7 +574,7 @@ def toggle_habit(request, habit_id, date):
         return JsonResponse({'status': 'error', 'message': 'Future dates are not allowed.'}, status=400)
     habit = get_object_or_404(Habit, id=habit_id, user=request.user)
     log, _ = HabitLog.objects.get_or_create(habit=habit, date=date_obj)
-    log.if_done = not log.if_done # flipping
+    log.if_done = not log.if_done
     log.save()
     return JsonResponse({'status': 'success', 'if_done': log.if_done})
 
@@ -621,77 +587,61 @@ def report_page(request):
 
 @login_required
 def report_data(request):
-    user = request.user
     today = timezone.localdate()
 
-    habits = Habit.objects.filter(user=user, status=True)
-    habit_labels = []
-    habit_values = []
+    habit_labels, habit_values = [], []
+    habits = Habit.objects.filter(user=request.user, status=True)
     for habit in habits:
-        first_done_date = HabitLog.objects.filter(
-            habit=habit,
-            if_done=True
-        ).aggregate(first=Min("date"))["first"]
-        if not first_done_date:
+        first_date = HabitLog.objects.filter(habit=habit, if_done=True).aggregate(first=Min("date"))["first"]
+        if not first_date:
             continue
-        logs = HabitLog.objects.filter(
-            habit=habit,
-            date__range=[first_done_date, today]
-        )
+
+        logs = HabitLog.objects.filter(habit=habit, date__range=[first_date, today])
         log_map = {log.date: log.if_done for log in logs}
         total = 0
         done = 0
-        d = first_done_date
+        d = first_date
         while d <= today:
             total += 1
             if log_map.get(d) is True:
                 done += 1
             d += timedelta(days=1)
+
         habit_labels.append(habit.name)
         habit_values.append(round(done / total, 2) if total else 0)
 
-    sleep_logs = SleepLog.objects.filter(user=user)
     sleep_dict = {}
-    valid_sleep_logs = []
+    sleep_profile_map = {}
+    sleep_logs = SleepLog.objects.filter(user=request.user).exclude(bedtime__isnull=True).exclude(waketime__isnull=True)
     for log in sleep_logs:
-        if not (log.bedtime and log.waketime):
-            continue
         duration = (log.waketime - log.bedtime).total_seconds() / 3600
         sleep_dict[log.date] = duration
-        valid_sleep_logs.append((log, duration))
 
-    sleep_profile_map = {}
-    for log, duration in valid_sleep_logs:
         dt = timezone.localtime(log.bedtime)
         hour = dt.hour
         minute = dt.minute
         if minute < 15:
-            temp_hour = hour
-            temp_min = 0
+            rounded_hour, rounded_minute = hour, 0
         elif minute < 45:
-            temp_hour = hour
-            temp_min = 30
+            rounded_hour, rounded_minute = hour, 30
         else:
-            temp_hour = (hour + 1) % 24
-            temp_min = 0
-        temp = f"{temp_hour:02d}:{temp_min:02d}"
-        if temp not in sleep_profile_map:
-            sleep_profile_map[temp] = {"sum": 0, "count": 0}
-        sleep_profile_map[temp]["sum"] += duration
-        sleep_profile_map[temp]["count"] += 1
-    def sort_key(label):
+            rounded_hour, rounded_minute = (hour + 1) % 24, 0
+
+        label = f"{rounded_hour:02d}:{rounded_minute:02d}"
+        sleep_profile_map.setdefault(label, {"sum": 0, "count": 0})
+        sleep_profile_map[label]["sum"] += duration
+        sleep_profile_map[label]["count"] += 1
+
+    def bedtime_sort(label):
         h, m = map(int, label.split(":"))
         return ((h - 18) % 24) * 60 + m
-    sleep_profile_labels = []
-    sleep_profile_values = []
-    sleep_profile_counts = []
-    for label in sorted(sleep_profile_map.keys(), key=sort_key):
-        data = sleep_profile_map[label]
-        avg = data["sum"] / data["count"]
-        sleep_profile_labels.append(label)
-        sleep_profile_values.append(round(avg, 2))
-        sleep_profile_counts.append(data["count"])
 
+    sleep_profile_labels = sorted(sleep_profile_map.keys(), key=bedtime_sort)
+    sleep_profile_values = [
+        round(sleep_profile_map[label]["sum"] / sleep_profile_map[label]["count"], 2)
+        for label in sleep_profile_labels
+    ]
+    sleep_profile_counts = [sleep_profile_map[label]["count"] for label in sleep_profile_labels]
 
     sleep_intervals = {
         "<4": [],
@@ -701,50 +651,42 @@ def report_data(request):
         "8-8.9": [],
         "9-9.9": [],
         "10-11.9": [],
-        "12+": []
+        "12+": [],
     }
-    def get_interval(h):
-        if h < 4:
-            return "<4"
-        elif h < 6:
-            return "4-5.9"
-        elif h < 7:
-            return "6-6.9"
-        elif h < 8:
-            return "7-7.9"
-        elif h < 9:
-            return "8-8.9"
-        elif h < 10:
-            return "9-9.9"
-        elif h < 12:
-            return "10-11.9"
-        return "12+"
-    habit_logs_all = HabitLog.objects.filter(habit__user=user, habit__status=True)
-    for log in habit_logs_all:
+    for log in HabitLog.objects.filter(habit__user=request.user, habit__status=True):
         sleep = sleep_dict.get(log.date)
         if sleep is None:
             continue
-        sleep_intervals[get_interval(sleep)].append(1 if log.if_done else 0)
-    sleep_impact_labels = list(sleep_intervals.keys())
-    sleep_impact_values = [
-        round(sum(v) / len(v), 2) if v else 0
-        for v in sleep_intervals.values()
-    ]
-    sleep_impact_counts = [len(v) for v in sleep_intervals.values()]
+        if sleep < 4:
+            sleep_intervals["<4"].append(1 if log.if_done else 0)
+        elif sleep < 6:
+            sleep_intervals["4-5.9"].append(1 if log.if_done else 0)
+        elif sleep < 7:
+            sleep_intervals["6-6.9"].append(1 if log.if_done else 0)
+        elif sleep < 8:
+            sleep_intervals["7-7.9"].append(1 if log.if_done else 0)
+        elif sleep < 9:
+            sleep_intervals["8-8.9"].append(1 if log.if_done else 0)
+        elif sleep < 10:
+            sleep_intervals["9-9.9"].append(1 if log.if_done else 0)
+        elif sleep < 12:
+            sleep_intervals["10-11.9"].append(1 if log.if_done else 0)
+        else:
+            sleep_intervals["12+"].append(1 if log.if_done else 0)
 
     return JsonResponse({
         "habits_chart": {
             "labels": habit_labels,
-            "values": habit_values
+            "values": habit_values,
         },
         "sleep_profile": {
             "labels": sleep_profile_labels,
             "values": sleep_profile_values,
-            "counts": sleep_profile_counts
+            "counts": sleep_profile_counts,
         },
         "sleep_impact": {
-            "labels": sleep_impact_labels,
-            "values": sleep_impact_values,
-            "counts": sleep_impact_counts
-        }
+            "labels": list(sleep_intervals.keys()),
+            "values": [round(sum(v) / len(v), 2) if v else 0 for v in sleep_intervals.values()],
+            "counts": [len(v) for v in sleep_intervals.values()],
+        },
     })

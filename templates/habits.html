@@ -59,7 +59,11 @@
                             <td data-label="{{ day.day_label }}"
                                 id="cell-{{ row.habit.id }}-{{ day.date }}"
                                 class="habit-cell day-col {% if day.is_done %}done{% endif %} {% if day.is_future %}future{% endif %} {% if day.is_today %}today{% endif %} {% if day.is_yearly %}yearly{% endif %}"
-                                {% if not day.is_future and not day.is_yearly %}onclick="toggleHabit('{{ row.habit.id }}', '{{ day.date }}')"{% endif %}>
+                                {% if not day.is_future and not day.is_yearly %}
+                                onclick="toggleHabit('{{ row.habit.id }}', '{{ day.date }}')"
+                                onkeydown="if(event.key === 'Enter' || event.key === ' ') toggleHabit('{{ row.habit_id }}', '{{ day.date_iso }}')"
+                                role="button"
+                                {% endif %}>
                                 <span class="m-date">{{ day.day_label }}</span>
                                 <span class="m-status">
 
@@ -86,7 +90,7 @@
             </table>
         </div>
 
-        <div class="habit-actions-row">
+        <div id="habitActionsRow" class="habit-actions-row">
             <div class="habit-actions">
                 {% if can_add_habit %}
                 <button type="button"
@@ -114,6 +118,14 @@
      hx-trigger="refresh-habits from:body"
      hx-target="#habitTable"
      hx-select="#habitTable"
+     hx-swap="outerHTML">
+</div>
+
+<div id="habitActionsRefresh"
+     hx-get="{% url 'habits-page' %}?view={{ view }}&week_change={{ week_change }}"
+     hx-trigger="refresh-habits from:body"
+     hx-target="#habitActionsRow"
+     hx-select="#habitActionsRow"
      hx-swap="outerHTML">
 </div>
 
