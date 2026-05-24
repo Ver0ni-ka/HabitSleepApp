@@ -50,8 +50,9 @@ def register_view(request):
 
 def login_view(request):
     next_url = request.GET.get('next', '')
+    login_str = 'accounts/login.html'
     if request.method != "POST":
-        return render(request, 'accounts/login.html', {
+        return render(request, login_str, {
             'form': LoginForm(),
             'error': None,
             'next': next_url,
@@ -62,7 +63,7 @@ def login_view(request):
 
     form = LoginForm(request.POST)
     if not form.is_valid():
-        return render(request, 'accounts/login.html', {
+        return render(request, login_str, {
             'form': form,
             'error': None,
             'next': next_url,
@@ -77,7 +78,7 @@ def login_view(request):
     user = authenticate(request, username=user_obj.username, password=password) if user_obj else None
 
     if user is None:
-        return render(request, 'accounts/login.html', {
+        return render(request, login_str, {
             'form': form,
             'error': "Invalid credentials",
             'next': next_url,
@@ -236,14 +237,8 @@ def sleep_timeline(sleep_log):
     bedtime = timezone.localtime(sleep_log.bedtime)
     waketime = timezone.localtime(sleep_log.waketime)
     current_timezone = timezone.get_current_timezone()
-    window_start = timezone.make_aware(
-        datetime.datetime.combine(sleep_log.date - timedelta(days=1), timeline_start),
-        current_timezone,
-    )
-    window_end = timezone.make_aware(
-        datetime.datetime.combine(sleep_log.date, timeline_end),
-        current_timezone,
-    )
+    window_start = timezone.make_aware(datetime.datetime.combine(sleep_log.date - timedelta(days=1), timeline_start), current_timezone)
+    window_end = timezone.make_aware(datetime.datetime.combine(sleep_log.date, timeline_end), current_timezone)
     total_minutes = (window_end - window_start).total_seconds() / 60
 
     start_m = (bedtime - window_start).total_seconds() / 60
@@ -252,14 +247,12 @@ def sleep_timeline(sleep_log):
     clamped_end = max(clamped_start, min(end_m, total_minutes))
     left_pct = (clamped_start / total_minutes) * 100
     width_pct = max(((clamped_end - clamped_start) / total_minutes) * 100, 2)
-
     return {
         'left_pct': round(left_pct, 3),
         'width_pct': round(width_pct, 3),
         'bedtime_display': bedtime.strftime('%H:%M'),
         'waketime_display': waketime.strftime('%H:%M'),
     }
-
 
 def parse_date_params(request):
     view = request.GET.get('view') or request.POST.get('view') or 'weekly'
@@ -359,13 +352,7 @@ def sleep_context(request):
         'selected_is_today': selected_log.date == today,
         'selected_label': 'Today' if selected_log.date == today else selected_log.date.strftime('%d.%m.%Y'),
         'selected_date_iso': selected_log.date.strftime('%Y-%m-%d'),
-        'hour_labels': [
-            '21', '22', '23',
-            '00', '01', '02', '03', '04', '05',
-            '06', '07', '08', '09', '10', '11',
-            '12', '13',
-        ],
-    }
+        'hour_labels': ['21', '22', '23', '00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13',]}
 
 
 @login_required
@@ -387,7 +374,6 @@ def sleep_view(request):
         if not is_quick:
             response_data['redirect_url'] = f"{reverse_lazy('sleep-page')}?view={context['view']}&week_change={context['week_change']}"
         return JsonResponse(response_data)
-
     return render(request, 'sleep.html', context)
 
 def tracker_date_range(view, today, week_change):
@@ -595,7 +581,6 @@ def report_data(request):
         first_date = HabitLog.objects.filter(habit=habit, if_done=True).aggregate(first=Min("date"))["first"]
         if not first_date:
             continue
-
         logs = HabitLog.objects.filter(habit=habit, date__range=[first_date, today])
         log_map = {log.date: log.if_done for log in logs}
         total = 0
