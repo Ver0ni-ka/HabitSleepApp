@@ -101,6 +101,7 @@
 
             <form id="sleepPageForm" class="sleep-quick-form sleep-page-form">
                 {% csrf_token %}
+                <input type="hidden" name="view" value="{{ view }}">
                 <input type="hidden" id="page_selected_date" name="selected_date" value="{{ selected_date_iso }}">
                 <input type="hidden" id="page_week_change" name="week_change" value="{{ week_change }}">
                 <input type="hidden" id="page_bedtime" name="bedtime" value="{{ sleep_log.bedtime|date:'H:i' }}">
